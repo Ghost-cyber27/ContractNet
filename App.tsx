@@ -1,14 +1,16 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
+import { ChatDetails } from './src/screens/user/ScreenComponent/ChatDetails';
+import { RootNavigator } from './src/screens/navigation/RootNavigation';
+import { TestChat } from './src/screens/user/testChat';
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <RootNavigator session=""/>
   );
 }
+
+//<RootNavigator session="sfbsfbsfb"/>
 
 const styles = StyleSheet.create({
   container: {

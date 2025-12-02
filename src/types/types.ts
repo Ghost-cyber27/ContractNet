@@ -1,0 +1,101 @@
+import { NavigatorScreenParams } from '@react-navigation/native';
+
+export interface Message {
+  id: number;
+  sender_id: number;
+  receiver_id: number;
+  job_id: number;
+  content: string;
+  is_read: boolean;
+  sent_at: string;
+};
+
+export interface Jobs {
+    id: number;
+    client_id: number;
+    status: string;
+    created_at: string;
+    update_at: string | null;
+};
+
+export interface JobUpdate{
+    title: string | null;
+    description: string | null;
+    category: string | null;
+    budget: number | null;
+    deadline: string | null;
+    status: string | null;
+};
+
+export interface Notification{
+    id: number;
+    user_id: number;
+    is_read: boolean;
+    created_at: string;
+};
+
+export interface User{
+    id: number;
+    rating: number | 0;
+    created_at: string;
+};
+
+export interface UserUpdate{
+    full_name: string | null;
+    bio: string | null;
+    skills: string | null;
+    profile_picture: string | null;
+};
+
+export interface Bid{
+    id: number;
+    job_id: number;
+    freelancer_id: number;
+    status: string;
+    created_at: string;
+};
+
+export interface Payment{
+    id: number;
+    job_id: number;
+    client_id: number;
+    freelancer_id: number;
+    payment_status: string;
+    transaction_id: string | null;
+    paid_at: string | null;
+};
+
+export interface Review{
+    id: number;
+    reviewer_id: number;
+    reviewee_id: number;
+    job_id: number;
+    created_at: string;
+};
+
+export type RootStackParamList = {
+    Auth: NavigatorScreenParams<AuthStackParamList>;
+    User: NavigatorScreenParams<UserStackParamList>;
+};
+
+export type UserStackParamList = {
+    UserTabs: undefined;
+    About: undefined;
+    Category: undefined;
+    ChangePassword: undefined;
+    chatDetails: {id: number; sender_id: number};
+    jobDetails: {id: number};
+    MyProfile: undefined;
+    Privacy: undefined;
+    profileDetails: undefined;
+};
+
+export type AuthStackParamList = {
+    Login: undefined;
+    SignUp: undefined;
+    ForgotPassword: undefined;
+}
+
+export interface AppNavigatorProps {
+  session: string | null;
+}
