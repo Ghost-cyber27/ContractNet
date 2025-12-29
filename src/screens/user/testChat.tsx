@@ -62,56 +62,56 @@ const styles = StyleSheet.create({
         flex: 1, 
         backgroundColor: "#fff" 
     },
-      header: {
-        paddingTop: 650 * 0.07,
-        flexDirection: "row",
-        paddingHorizontal: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: "#DDDDDD",
-        paddingVertical: 8,
-        backgroundColor: "#f2f8fc",
-      },
-      heading: { 
-        fontWeight: "500", 
-        paddingLeft: 16, 
-        fontSize: 20 
-      },
-      headerName: { 
-        fontSize: 25, 
-        fontWeight: "400" 
-      },
-      headerImg: { 
-        width: wp("15%"), 
-        height: hp("6%"), 
-        borderRadius: 50, 
-        resizeMode: "contain" 
-      },
-      msgView: { 
-        bottom: 56, 
-        flexDirection: "row", 
-        gap: wp("2%"), 
-        padding: 5 
-      },
-      textInput: { 
-        borderWidth: 2, 
-        width: wp("80%"), 
-        height: hp("7%"), 
-        borderRadius: 10, 
-        borderColor: "#184d85", 
-        padding: 5 
-      },
-      btn: { 
-        width: wp("15%"), 
-        height: hp("7%"), 
-        borderRadius: 10, 
-        alignItems: "center", 
-        justifyContent: "center", 
-        backgroundColor: "#184d85" 
-      },
-      chatView: {
-        marginBottom: 50,
-        backgroundColor: 'white',
-        width: wp('100%'),
-        height: hp('90%'),
-      },
+    header: {
+      paddingTop: 650 * 0.07,
+      flexDirection: "row",
+      paddingHorizontal: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: "#DDDDDD",
+      paddingVertical: 8,
+      backgroundColor: "#f2f8fc",
+    },
+    heading: { 
+      fontWeight: "500", 
+      paddingLeft: 16, 
+      fontSize: 20 
+    },
+    headerName: { 
+      fontSize: 25, 
+      fontWeight: "400" 
+    },
+    headerImg: { 
+      width: wp("15%"), 
+      height: hp("6%"), 
+      borderRadius: 50, 
+      resizeMode: "contain" 
+    },
+    msgView: { 
+      bottom: 56, 
+      flexDirection: "row", 
+      gap: wp("2%"), 
+      padding: 5 
+    },
+    textInput: { 
+      borderWidth: 2, 
+      width: wp("80%"), 
+      height: hp("7%"), 
+      borderRadius: 10, 
+      borderColor: "#184d85", 
+      padding: 5 
+    },
+    btn: { 
+      width: wp("15%"), 
+      height: hp("7%"), 
+      borderRadius: 10, 
+      alignItems: "center", 
+      justifyContent: "center", 
+      backgroundColor: "#184d85" 
+    },
+    chatView: {
+      marginBottom: 50,
+      backgroundColor: 'white',
+      width: wp('100%'),
+      height: hp('90%'),
+    },
 });

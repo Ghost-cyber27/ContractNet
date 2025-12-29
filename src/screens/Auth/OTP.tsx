@@ -1,81 +1,77 @@
-import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
-import { 
+import {
     View,
     Text,
-    TextInput,
     TouchableOpacity,
     StyleSheet,
-    KeyboardAvoidingView,
-    Platform
-} from "react-native";
+    TextInput
+} from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AuthStackParamList } from "../../types/types";
+import { useNavigation, NavigationProp, RouteProp, useRoute } from '@react-navigation/native';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import AntDesign from '@expo/vector-icons/AntDesign';
-import { useAuthStore } from "../../services/AuthContext";
-import { AuthStackParamList } from "../../types/types";
-import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { api } from "../../services/client";
-import axios from "axios";
 
-type AuthScreenNavigationProp = NavigationProp<AuthStackParamList, 'ForgotPassword'>;
+type AuthScreenNavigationProp = NavigationProp<AuthStackParamList, 'OTP'>;
+type DetailsScreenNavigationProp = RouteProp<AuthStackParamList, 'OTP'>;
 
-export default function ForgotPassword(){
-    const [email, setEmail] = useState('');
-    const navigation = useNavigation<AuthScreenNavigationProp>()
+export default function OTP(){
+    const [otp, setOtp] = useState('');
+    const [pass, setPass] = useState('');
+    const route = useRoute<DetailsScreenNavigationProp>();
+    const { email } = route.params;
+    const navigation = useNavigation<AuthScreenNavigationProp>();
 
-    const fPassword = async() => {
+    const reset = async() => {
         try {
-            const res = await api.post('/auth/forgot-password',
+            const res = await api.post('/auth/reset-password',
                 {
-                    email: email
-                },
-                {
-                    headers: {
-                        "Content-Type": "application/json"
-                    }
+                    email: email,
+                    otp: otp,
+                    new_password: pass
                 }
             );
 
             if (res) {
-                navigation.navigate('OTP',{email: email});
+                alert("Success");
+             navigation.navigate('Login');   
             }
-
-            console.log("OTP sent");
+            console.log(res.data);
         } catch (error) {
             console.error(error);
-            if (axios.isAxiosError(error) && error.response) {
-                console.error('API Error:', error.response.data); // <-- This is the key
-                console.error('Status Code:', error.response.status);
-            } else {
-                console.error('An unknown error occurred:', error);
-            }
-            throw error;
         }
     };
 
+
     return(
-        <SafeAreaView
-            style={styles.container}
-        >
+        <SafeAreaView>
             <View style={styles.headerView}>
                 <Text style={styles.headerText}>Forgot Password</Text>
             </View>
             <View style={styles.inputView}>
                 <View style={styles.textInput}>
-                    <AntDesign name="mail" size={24} color="black" style={styles.icon}/>
+                    <AntDesign name="api" size={24} color="black" style={styles.icon}/>
                     <TextInput
                         style={styles.texting}
-                        placeholder="Email"
-                        keyboardType="email-address"
-                        onChangeText={(text) => setEmail(text)}
+                        placeholder="OTP"
+                        keyboardType="twitter"
+                        onChangeText={(text) => setOtp(text)}
+                    />
+                </View>
+                <View style={styles.textInput}>
+                    <AntDesign name="lock" size={24} color="black" style={styles.icon}/>
+                    <TextInput
+                        style={styles.texting}
+                        placeholder="New Password"
+                        keyboardType="twitter"
+                        onChangeText={(text) => setPass(text)}
                     />
                 </View>
             </View>
-            <TouchableOpacity style={styles.btn} onPress={() => fPassword()}>
+            <TouchableOpacity style={styles.btn} onPress={() => reset()}>
                 <Text style={styles.btnText}>ENTER</Text>
             </TouchableOpacity>
-            <StatusBar style="auto" />
         </SafeAreaView>
     );
 };
@@ -107,7 +103,8 @@ const styles = StyleSheet.create({
         fontWeight: '600'
     },
     inputView: {
-        padding: 10
+        padding: 10,
+        gap: hp('3%'),
     },
     textInput: {
         borderWidth: 2,

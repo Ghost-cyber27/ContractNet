@@ -1,11 +1,8 @@
-import { useState } from "react";
-import { View, Text, TouchableOpacity, Image } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import MyJobs from "../user/HomeScreen";
 import Chat from "../user/Chat";
 import Settings from "../user/Settings";
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { UserStackParamList } from "../../types/types";
 
@@ -16,8 +13,6 @@ const Tab = createBottomTabNavigator();
 
 export default function UserTabs(){
     const navigation = useNavigation<OrderScreenNavigationProp>();
-
-   
 
     return(
         <Tab.Navigator screenOptions={{ headerShown: true }}>
@@ -50,5 +45,5 @@ export default function UserTabs(){
                 }}
             />
         </Tab.Navigator>
-    )
+    );
 }

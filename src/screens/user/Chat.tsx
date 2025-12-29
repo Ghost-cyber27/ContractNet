@@ -5,12 +5,15 @@ import {
     StyleSheet,
     FlatList,
     TouchableOpacity,
-    Image
  } from "react-native";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
 import { StatusBar } from "expo-status-bar";
 import { AllChats } from "../../services/message";
 import { AntDesign } from "@expo/vector-icons";
+import { UserStackParamList } from "../../types/types";
+import { useNavigation, NavigationProp } from "@react-navigation/native";
+
+type UserScreenNavigationProp = NavigationProp<UserStackParamList, 'UserTabs'>;
 
 
 type Chats = {
@@ -25,11 +28,13 @@ type Chats = {
 
 export default function Chat(){
     const [message, setMessage] = useState<Chats[]>([]);
+    const navigation = useNavigation<UserScreenNavigationProp>();
     //add sender name
     useEffect(() => {
         const loadMessages = async() => {
-            const msg = await AllChats('jkja');
+            const msg = await AllChats('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJleHAiOjE3NjQ4NDIzNDcsInR5cGUiOiJhY2Nlc3MifQ.sXoEjGnyoE5bT8fT4dTlP83NG4ueeV0EVHCe4qDcTs8');
             setMessage(msg);
+            console.log('Msg: ' ,msg)
         };
 
         loadMessages();
@@ -37,30 +42,35 @@ export default function Chat(){
 
     return(
         <View style={styles.container}>
-            {!message 
+            {message.length > 0
             ? (
-                <View>
-                    <Text>No Chat</Text>
-                </View>
-            ) 
-            : (
                 <FlatList
                     data={message}
                     renderItem={({ item }) => (
-                        <TouchableOpacity style={styles.chatView}>
+                        <TouchableOpacity style={styles.chatView} onPress={() => navigation.navigate('chatDetails',{
+                            id: 1,
+                            sender_id: 2
+                        })}>
                             <View style={styles.img}>
                                 <AntDesign name="message" size={30} color='black' />
                             </View>
                             <View>
                                 <Text style={item.is_read ? styles.name : styles.unreadname}>{item.sender_id}</Text>
-                                <Text style={item.is_read ? styles.msg : styles.unreadmsg}>{item.content}</Text>
+                                <Text style={item.is_read ? styles.msg : styles.unreadmsg} numberOfLines={1}>{item.content}</Text>
                             </View>
-                            <Text style={item.is_read ? styles.time : styles.unreadtime}>{item.sent_at}</Text>
+                            <Text style={item.is_read ? styles.time : styles.unreadtime}>{item.sent_at.split("T")[1].slice(0, 5)}</Text>
                         </TouchableOpacity>
                     )}
+                    keyExtractor={(item) => item.id.toString()}
                 />
                 )
+                : (
+                    <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
+                        <Text style={{fontSize: 20, fontWeight: '400'}}>No Chat ......</Text>
+                    </View>
+                ) 
             }
+            <StatusBar style="auto" />
         </View>
     );
 }
@@ -68,18 +78,24 @@ export default function Chat(){
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: 'white'
     },
     chatView: {
         margin: 5,
         padding: 5,
-        top: hp('20%'),
+        top: hp('2%'),
+        backgroundColor: 'white',
+        flexDirection: 'row',
+        elevation: 2,
+        borderRadius: 5
     },
     img: {
-        width: wp('20%'),
+        width: wp('15%'),
         height: hp('7%'),
         borderRadius: 50,
         resizeMode: 'contain',
-        backgroundColor: 'white',
+        alignItems: 'center',
+        justifyContent: 'center'
     },
     name: {
         fontSize: 16,
@@ -93,7 +109,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '200',
         position: 'absolute',
-        left: wp('75%')
+        left: wp('85%')
     },
     unreadname: {
         fontSize: 16,
@@ -105,8 +121,9 @@ const styles = StyleSheet.create({
     },
     unreadtime: {
         fontSize: 14,
-        fontWeight: '600',
+        fontWeight: '400',
         position: 'absolute',
-        left: wp('75%')
+        left: wp('85%'),
+        top: hp('5%')
     },
 });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { 
     View,
     Text,
@@ -7,25 +7,135 @@ import {
     FlatList,
     ScrollView,
     Image,
-    Modal
+    Modal, 
+    ActivityIndicator
 } from "react-native";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
 import { useAuthStore } from "../../services/AuthContext";
-import { StatusBar } from "expo-status-bar";
 import { CategoryData } from "../../utils/categoryData";
+import { UserStackParamList } from "../../types/types";
+import { useNavigation, NavigationProp, useFocusEffect } from "@react-navigation/native";
+import { api } from "../../services/client";
+import axios from 'axios';
+
+type UserScreenNavigationProp = NavigationProp<UserStackParamList, 'UserTabs'>;
+
+type JobData = {
+    id: number;
+    title: string;
+    category: string;
+    description: string;
+    budget: number;
+    deadline: Date;
+    status: string;
+};
+
+type NotificationData = {
+    id: number;
+    message: string;
+    is_read: boolean;
+    created_at: Date;
+};
 
 export default function MyJobs(){
-    //const { user } = useAuthStore();
     const [isModal, setIsModal] = useState(false);
     const [seeAll, setSeeAll] = useState(false);
-    const user = "Isaac";
+    const [data, setData] = useState<JobData[]>([]);
+    const [nData, setNData] = useState<NotificationData[]>([]);
+    const [dataLoading, setDataLoading] = useState(false);
+    const navigation = useNavigation<UserScreenNavigationProp>();
+    const token = useAuthStore().token;
+    const [unread, setUnread] = useState<number>(3);
+
+    const fetchJobs = async() => {
+        setDataLoading(true);
+        try {
+            const res = await api.get('/jobs/me',
+                {
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+
+            console.log('Job Data: ', res.data);
+            setData(res.data);
+            setDataLoading(false);
+        } catch (error) {
+            console.error(error);
+            setDataLoading(false);
+            if (axios.isAxiosError(error) && error.response) {
+                console.error('API Error:', error.response.data); // <-- This is the key
+                console.error('Status Code:', error.response.status);
+            } else {
+                console.error('An unknown error occurred:', error);
+            }
+            throw error;
+        }
+    };
+
+    const fetchNotifications = async() => {
+        try {
+            const res = await api.get(`/notifications/${useAuthStore().user.id}`,
+                {
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+
+            if(!res) console.log("Unsuccessful fetch of notification");
+
+            setNData(res.data);
+            const unreadCount = nData.filter(n => n.is_read === true).length;
+            setUnread(unreadCount);
+            console.log("Notification: ", res.data);
+            console.log('unread Notifications: ', unreadCount);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const updateNotifications = async(id: number) => {
+        try {
+            const res = await api.get(`/notifications/${id}/read`,
+                {
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+
+            if(!res) console.log("Unsuccessful update of notification");
+
+            setNData(res.data);
+            console.log("Update Notification: ", res.data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+    
+    useEffect(() => {
+        //fetchJobs();
+        //fetchNotifications();
+    },[]);
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchJobs();  // refresh every time screen is focused
+            fetchNotifications();
+        }, [])
+    );
 
     return(
         <ScrollView style={styles.container}>
             {/*Header*/}
             <View style={styles.topView}>
-                <Text style={styles.welText}>Hello, {user} <AntDesign name="dollar" size={16} color='white'/></Text>
+                <Text style={styles.welText}>Hello, {useAuthStore().user.full_name} <AntDesign name="dollar" size={16} color='white'/></Text>
                 <View style={styles.headerView}>
                     <View>
                         <Text style={styles.headerText}>Let's find the best</Text>
@@ -33,6 +143,11 @@ export default function MyJobs(){
                     </View>
                     <TouchableOpacity style={styles.notiBtn} onPress={() => setIsModal(true)}>
                         <AntDesign name="bell" size={25} color='white'/>
+                        {unread > 0 && (
+                            <View style={styles.badge}>
+                                <Text style={styles.badgeText}>{unread}</Text>
+                            </View>
+                        )}
                     </TouchableOpacity>
                 </View>
             </View>
@@ -51,7 +166,9 @@ export default function MyJobs(){
                     data={CategoryData}
                     renderItem={({ item }) => (
                     <View style={{margin: 20}}>
-                        <TouchableOpacity style={{gap: 5}}>
+                        <TouchableOpacity style={{gap: 5}} onPress={() => navigation.navigate('Category', {
+                            name: item.name.replace('\n', ' '),
+                            })}>
                             <Image source={item.icon} style={styles.categoryListImg}/>
                             <Text style={styles.categoryListText}>{item.name}</Text>
                         </TouchableOpacity>
@@ -65,39 +182,56 @@ export default function MyJobs(){
             </View>
             {/*My Job Section*/}
             <View style={styles.jobView}>
-                <Text style={styles.categoryText}>My Jobs</Text>
+                <View style={{flexDirection: 'row', gap: wp('62%')}}>
+                    <Text style={styles.categoryText}>My Jobs</Text>
+                    <TouchableOpacity onPress={() => navigation.navigate('AddJob')}>
+                        <AntDesign name='plus-circle' size={25} color='black' />
+                    </TouchableOpacity>
+                </View>
                 <View style={{backgroundColor: 'white'}}>
-                    {CategoryData.map((item) => (
+                    
+                    {dataLoading 
+                    ? <ActivityIndicator size={"large"} color={"blue"} />
+                    : data.map((item) => (
                     <TouchableOpacity key={item.id} style={{
                         flexDirection: 'row', 
                         margin: 5, 
                         backgroundColor: 'white',
-                        width: wp('90%'),
+                        width: wp('93%'),
                         height: hp('15%'),
                         borderRadius: 10,
                         justifyContent: 'center',
                         alignItems: 'center',
                         elevation: 6
-                        }}>
+                        }}
+                        onPress={() => navigation.navigate('JobDetails', {
+                            id: item.id,
+                            title: item.title,
+                            category: item.category,
+                            description: item.description,
+                            budget: item.budget,
+                            deadline: item.deadline,
+                            status: item.status,
+                        })}
+                        >
                         <Image
-                            source={item.icon}
+                            source={require('../../../assets/job.png')}
                             style={styles.jobImg}
                         />
                         <View style={{flexDirection: 'row', right: wp('5%'), gap: wp('5%')}}>
                             <View>
-                                <Text style={styles.jobTextHead}>Name of Job</Text>
-                                <Text style={styles.jobText}>{item.name}</Text>
+                                <Text style={styles.jobTextHead}>{item.title}</Text>
+                                <Text style={styles.jobText}>{item.category}</Text>
                             </View>
                             <View>
-                                <Text style={styles.jobPrice}>$900,000</Text>
-                                <Text style={styles.jobText}>Budget</Text>
+                                <Text style={styles.jobPrice}>₦{item.budget}</Text>
+                                <Text style={styles.jobText}>{item.deadline.toString()}</Text>
                             </View>
                         </View>
                     </TouchableOpacity>
                     ))}
                 </View>
             </View>
-            <StatusBar style="auto" />
             {/*Modal for Notifications*/}
             <Modal
                 visible={isModal}
@@ -109,8 +243,9 @@ export default function MyJobs(){
                             <AntDesign name="close-circle" size={30} color='black' />
                         </TouchableOpacity>
                     </View>
-                    <FlatList
-                        data={CategoryData}
+                    {nData.length > 0 
+                    ? <FlatList
+                        data={nData}
                         renderItem={({ item }) => (
                             <TouchableOpacity style={{
                                 margin: 5,
@@ -119,35 +254,38 @@ export default function MyJobs(){
                                 borderRadius: 5,
                                 justifyContent: 'center',
                                 padding: 10,
-                                backgroundColor: item.read ? 'white' : '#184d85',
+                                backgroundColor: item.is_read ? 'white' : '#184d85',
                                 elevation: 2
-                            }}>
+                            }}
+                            onPress={() => updateNotifications(item.id)}
+                            >
                                 <View style={{
-                                    
                                     flexDirection: 'row',
                                 }}>
-                                    <AntDesign name="notification" size={30} color={item.read ? 'black' : 'white'} />
+                                    <AntDesign name="notification" size={30} color={item.is_read ? 'black' : 'white'} />
                                     <View style={{padding: 5}}>
                                         <Text
                                             style={{
-                                                color: item.read ? 'black' : 'white',
+                                                color: item.is_read ? 'black' : 'white',
                                                 fontSize: 16,
-                                                fontWeight: item.read ? '300' : '500'
+                                                fontWeight: item.is_read ? '300' : '500'
                                             }}
                                         >Message</Text>
                                         <Text
                                             style={{
-                                                color: item.read ? 'black' : 'white',
-                                                fontWeight: item.read ? '300' : '500'
+                                                color: item.is_read ? 'black' : 'white',
+                                                fontWeight: item.is_read ? '300' : '500'
                                             }}
                                         >time</Text>
                                     </View>
                                 </View>
                             </TouchableOpacity>
                         )}
-                        keyExtractor={(item) => item.id}
+                        keyExtractor={(item) => item.id.toString()}
                         style={styles.notiView}
                     />
+                    : <Text style={{ top: hp('45%'), fontSize: 24 }}>No Notifications</Text>
+                    }
                 </View>
             </Modal>
             {/*seeing all category*/}
@@ -158,7 +296,9 @@ export default function MyJobs(){
                     data={CategoryData}
                     renderItem={({ item }) => (
                     <View style={{margin: 20}}>
-                        <TouchableOpacity style={{gap: 5}}>
+                        <TouchableOpacity style={{gap: 5}} onPress={() => navigation.navigate('Category', {
+                            name: item.name,
+                            })}>
                             <Image source={item.icon} style={styles.categoryListImg}/>
                             <Text style={styles.categoryListText}>{item.name}</Text>
                         </TouchableOpacity>
@@ -206,7 +346,8 @@ export default function MyJobs(){
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1
+        flex: 1,
+        backgroundColor: 'white'
     },
     topView: {
         width: wp('200%'),
@@ -324,5 +465,22 @@ const styles = StyleSheet.create({
         height: hp('10%'),
         resizeMode: 'contain', 
         right: wp('5%')
-    }
+    },
+    badge: {
+    position: "absolute",
+    right: -5,
+    top: -5,
+    backgroundColor: "red",
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    minWidth: 18,
+    justifyContent: "center",
+    alignItems: "center"
+  },
+  badgeText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
 });

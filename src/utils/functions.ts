@@ -1,6 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
+import { api } from '../services/client';
 
-const uploadImage = async() => {
+export const uploadImage = async() => {
     const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
@@ -10,13 +11,12 @@ const uploadImage = async() => {
     if (result.canceled) return null;
     
     const image = result.assets[0];
-    console.log('image asset: ',image);
 
-    if (!image.uri) {
-        return "Error/no image"
-    }
-
-    return image.uri;
+    return {
+        uri: image.uri,
+        name: image.fileName || "image.jpg",
+        type: image.mimeType || "image/jpeg",
+    };
 
     // return image;
 }

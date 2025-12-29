@@ -6,13 +6,20 @@ import {
     Image,
     StyleSheet,
     Modal,
-    TextInput
+    TextInput,
+    ActivityIndicator
 } from "react-native";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
 import * as ImagePicker from 'expo-image-picker';
 import { WebView } from 'react-native-webview';
 import { Privacy } from "./ScreenComponent/privacy";
+import { useAuthStore } from "../../services/AuthContext";
+import { AuthStackParamList } from "../../types/types";
+import { useNavigation, NavigationProp } from "@react-navigation/native";
+import { api } from "../../services/client";
+
+type AuthScreenNavigationProp = NavigationProp<AuthStackParamList, 'Login'>;
 
 export default function Settings(){
     const [showing, setShowing] = useState(false);
@@ -21,10 +28,24 @@ export default function Settings(){
     const [about, setAbout] = useState(false);
     const [imgUri, setImgUri] = useState('');
     const [imgLoad, setImgLoad] = useState(false);
-    const [name, setName] = useState('Isaac Lekwot');
-    const [email, setEmail] = useState('ilekwot2@gmail.com');
+    const [name, setName] = useState(useAuthStore((s) => s.user.full_name));
+    const [email, setEmail] = useState(useAuthStore((s) => s.user.email));
+    const [proPic, setProPic] = useState(useAuthStore((s) => s.user.profile_picture));
     const [pass1, setPass1] = useState('');
     const [pass2, setPass2] = useState('');
+    const navigation = useNavigation<AuthScreenNavigationProp>();
+    const token = useAuthStore((s) => s.token);
+    const [update, setUpdate] = useState(false);
+    const [change, setChange] = useState(false);
+
+    const logout = async() => {
+        try {
+            await useAuthStore.getState().logout();
+            console.log("Logged out");
+        } catch (error) {
+            
+        }
+    };
 
     const uploadImage = async() => {
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -39,20 +60,76 @@ export default function Settings(){
         console.log('image asset: ',image);
 
         if (!image.uri) {
-            return "Error/no image"
+            return "Error/no image";
         }
 
         setImgUri(image.uri);
         setImgLoad(true);
+    };
 
-        // return image;
-    }
+    const updateUser = async() => {
+        setUpdate(true);
+        try {
+            const formData = new FormData();
+            formData.append('full_name', name);
+            formData.append('email', email);
+            formData.append('profile_picture', proPic);
+
+            const res = await api.put('/users/update', 
+                formData,
+                {
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+
+            setUpdate(false);
+            if (res) {
+                alert("User Info Updated");
+                setShowing(false);
+            }
+        } catch (error) {
+            console.error(error);
+            setUpdate(false);
+        }
+    };
+
+    const changePassword = async() => {
+        setChange(true);
+        try {
+            const formData = new FormData();
+            formData.append('old_password', pass1);
+            formData.append('new_password', pass2);
+
+            const res = await api.put('/auth/change-password',
+                formData,
+                {
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+
+            setChange(false);
+            if (res) {
+                alert("Success");
+                setPView(false);
+            }
+            console.log(res);
+        } catch (error) {
+            console.error(error);
+            setChange(false);
+        }
+    };
 
     return(
         <View style={styles.container}>
             <View style={styles.headerView}>
                 <Image 
-                source={require('../../../assets/icons/Vynil Icons.png')}
+                source={{uri: proPic}}
                 style={styles.headerImg}
                 />
                 <View style={styles.headerTextView}>
@@ -73,7 +150,7 @@ export default function Settings(){
                     <AntDesign name="key" size={30} color='white' />
                     <Text style={styles.optionText}>Privacy Policy</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.optionBtn}>
+                <TouchableOpacity style={styles.optionBtn} onPress={() => logout()}>
                     <AntDesign name="logout" size={30} color='white' />
                     <Text style={styles.optionText}>Sign Out</Text>
                 </TouchableOpacity>
@@ -96,9 +173,10 @@ export default function Settings(){
                         />
                     ) 
                     : (
-                        <View style={styles.iconView}>
-                            <AntDesign name='picture' size={50} color='black' />
-                        </View>
+                        <Image
+                            source={{uri: proPic || 'https://www.vecteezy.com/free-vector/no-photo'}}
+                            style={styles.img}
+                        />
                     )}
                 </TouchableOpacity>
                 <View style={styles.inputView}>
@@ -133,13 +211,15 @@ export default function Settings(){
                         margin: 5,
                         left: wp('13%')
                     }}
-                    onPress={() => console.log("Saved")}
+                    onPress={() => updateUser()}
                 >
-                    <Text style={{
+                    {update 
+                    ? <ActivityIndicator size={"large"} color={"white"} />
+                    :<Text style={{
                         fontSize: 20,
                         color: 'white',
                         fontWeight: '500'
-                    }}>Save Update</Text>
+                    }}>Save Update</Text>}
                 </TouchableOpacity>
                 <TouchableOpacity 
                     style={{
@@ -172,8 +252,8 @@ export default function Settings(){
                         <TextInput
                             style={styles.texting}
                             placeholder="Old Password"
+                            keyboardType="visible-password"
                             onChangeText={(text) => setPass1(text)}
-                            value={pass1}
                         />
                     </View>
                     <View style={styles.textInput}>
@@ -183,7 +263,6 @@ export default function Settings(){
                             placeholder="New Password"
                             keyboardType="visible-password"
                             onChangeText={(text) => setPass2(text)}
-                            value={pass2}
                         />
                     </View>
                 </View>
@@ -198,13 +277,15 @@ export default function Settings(){
                         margin: 5,
                         left: wp('13%')
                     }}
-                    onPress={() => console.log("Saved")}
+                    onPress={() => changePassword()}
                 >
-                    <Text style={{
+                    {change
+                    ? <ActivityIndicator size={"large"} color={"white"} />
+                    :<Text style={{
                         fontSize: 20,
                         color: 'white',
                         fontWeight: '500'
-                    }}>Save Update</Text>
+                    }}>Save Update</Text>}
                 </TouchableOpacity>
                 <TouchableOpacity 
                     style={{

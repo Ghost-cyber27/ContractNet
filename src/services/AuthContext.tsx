@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { api, fetchProfile } from "./client";
+import {jwtDecode} from "jwt-decode";
 
 interface AuthState {
   user: any | null;
@@ -9,14 +10,25 @@ interface AuthState {
   loading: boolean;
 
   signup: (
-    full_name: string,
-    email: string,
-    password: string,
-    profile_picture: string
+    data: {
+    full_name: string;
+    email: string;
+    password: string;
+    role: string;
+    profile_picture?: string;
+}
   ) => Promise<void>;
 
   login: (email: string, password: string) => Promise<void>;
+  refresh: (token: string) => Promise<boolean>;
   logout: () => Promise<void>;
+}
+
+interface MyJwtPayload {
+  exp: number;  // required
+  iat?: number;
+  sub?: string;
+  [key: string]: any;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -27,18 +39,18 @@ export const useAuthStore = create<AuthState>()(
       loading: false,
 
       // SIGNUP
-      signup: async (full_name, email, password, profile_picture) => {
+      signup: async (data) => {
         try {
           set({ loading: true });
 
           const res = await api.post(
             "/auth/signup",
             {
-              full_name,
-              email,
-              password,
-              role: "client",
-              profile_picture,
+              full_name: data.full_name,
+              email: data.email,
+              password: data.password,
+              role: data.role,
+              profile_picture: data.profile_picture
             },
             {
               headers: {
@@ -95,6 +107,16 @@ export const useAuthStore = create<AuthState>()(
           console.log("Login error:", err);
           set({ loading: false });
           throw err;
+        }
+      },
+
+      refresh: async (token) => {
+        try {
+          const decoded = jwtDecode<MyJwtPayload>(token);
+          const now = Math.floor(Date.now() / 1000);
+          return decoded.exp < now;
+        } catch (error) {
+          return true;
         }
       },
 

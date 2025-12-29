@@ -9,7 +9,8 @@ import {
     Image,
     KeyboardAvoidingView,
     Platform,
-    ScrollView
+    ScrollView,
+    ActivityIndicator
 } from "react-native";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import * as ImagePicker from 'expo-image-picker';
@@ -17,16 +18,23 @@ import { useAuthStore } from "../../services/AuthContext";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { AuthStackParamList } from "../../types/types";
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { api } from "../../services/client";
+
+type AuthScreenNavigationProp = NavigationProp<AuthStackParamList, 'Login'>;
 
 export default function SignUp(){
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [imgUri, setImgUri] = useState('');
-    const [imgBase, setImgBase] = useState<string | null>(null);
+    const [imgName, setImgName] = useState('');
+    const [imgType, setImgType] = useState('');
     const [imgLoad, setImgLoad] = useState(false);
+    const [loading, setLoading] = useState(false);
     const [seePass, setSeePass] = useState<boolean>(true);
-    //for imageBase6
+    const navigation = useNavigation<AuthScreenNavigationProp>();
     //const imageDataUri = 'data: image/png;base64, ${base64}';
 
     const uploadImage = async() => {
@@ -34,35 +42,58 @@ export default function SignUp(){
             mediaTypes: ['images'],
             allowsEditing: true,
             quality: 1,
-            base64: true,
         });
-
+    
         if (result.canceled) return null;
-
-        const base = result.assets[0].base64;
-        console.log('image base64: ',base);
-        //setImgBase(base);
         
         const image = result.assets[0];
-        console.log('image asset: ',image);
-
-        if (!image.uri) {
-            return "Error/no image"
-        }
+        console.log('img uri: ',image.uri);
 
         setImgUri(image.uri);
+        setImgName(image.fileName || 'image.jpg');
+        setImgType(image.mimeType || "image/jpeg");
         setImgLoad(true);
-
-        // return image;
-    }
+    };
 
     const signup = async() => {
+        setLoading(true)
         try {
-            await useAuthStore.getState().signup(name, email, password, "profile_picture");
+            const formData = new FormData();
+            formData.append('file',{
+                uri: `${imgUri}`,
+                name: `${imgName}`,
+                type: `${imgType}`
+                } as any
+            );
+
+            const proPic = await api.post('/upload/',
+                formData,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                }
+            );
+
+            console.log('profile pic: ', proPic);
+            
+            await useAuthStore.getState().signup({
+                full_name: name,
+                email: email,
+                password: password,
+                role: "client",
+                profile_picture: proPic.data.url
+            });
+
+            await useAuthStore.getState().login(email, password);
+            
+            setLoading(false);
         } catch (error) {
             console.log("SignUp failed:", error);
+            setLoading(false);
         }
-    }
+
+    };
 
     return(
         <KeyboardAvoidingView
@@ -72,7 +103,7 @@ export default function SignUp(){
         >
            <ScrollView
            style={styles.container}
-            keyboardShouldPersistTaps="handled"
+            keyboardShouldPersistTaps="never"
            >
                 <Image
                     source={require('../../../assets/bg2.jpg')}
@@ -84,9 +115,10 @@ export default function SignUp(){
                 <View style={styles.pic}>
                     {imgLoad 
                     ? <Image source={{uri: imgUri}} style={styles.proPic}/> 
-                    : <TouchableOpacity style={styles.proPic} onPress={() => uploadImage()}></TouchableOpacity>
+                    :   <TouchableOpacity onPress={() => uploadImage()}>
+                            <Ionicons name="person-add-outline" size={100} color='black' />
+                        </TouchableOpacity>
                     }
-                    <Image/>
                 </View>
                 <View style={styles.inputView}>
                     <View style={styles.textInput}>
@@ -94,6 +126,7 @@ export default function SignUp(){
                         <TextInput
                             style={styles.texting}
                             placeholder="Full Name"
+                            onChangeText={(text) => setName(text)}
                         />
                     </View>
                     <View style={styles.textInput}>
@@ -102,6 +135,7 @@ export default function SignUp(){
                             style={styles.texting}
                             placeholder="example@email.com"
                             keyboardType="email-address"
+                            onChangeText={(text) => setEmail(text)}
                         />
                     </View>
                     <View style={styles.textInput}>
@@ -110,6 +144,7 @@ export default function SignUp(){
                             style={styles.texting}
                             placeholder="Password"
                             secureTextEntry={seePass}
+                            onChangeText={(text) => setPassword(text)}
                         />
                         {seePass 
                         ? <TouchableOpacity onPress={() => setSeePass(false)}>
@@ -117,14 +152,15 @@ export default function SignUp(){
                             </TouchableOpacity>
                         : <TouchableOpacity onPress={() => setSeePass(true)}>
                             <Feather name="eye" size={24} color="black" style={styles.iconPass}/>
-                            </TouchableOpacity>}
+                            </TouchableOpacity>
+                        }
                     </View>
                 </View>
-                <TouchableOpacity style={styles.btn}>
-                    <Text style={styles.btnText}>SIGN UP</Text>
+                <TouchableOpacity style={styles.btn} onPress={() => signup()}>
+                    {loading ? <ActivityIndicator size={"large"} /> :<Text style={styles.btnText}>SIGN UP</Text>}
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.regs}>
-                    <Text style={styles.regsText}>Already have an account? <Text style={{fontWeight: 'bold', color: '#184d85'}}>Sign Up</Text></Text>
+                <TouchableOpacity style={styles.regs} onPress={() => navigation.navigate('Login')}>
+                    <Text style={styles.regsText}>Already have an account? <Text style={{fontWeight: 'bold', color: '#184d85'}}>Log In</Text></Text>
                 </TouchableOpacity>
                 <StatusBar style="auto" />
            </ScrollView>
@@ -135,7 +171,7 @@ export default function SignUp(){
 const styles = StyleSheet.create({
     container: {
         backgroundColor: 'white',
-        height: hp('95%'),
+        height: hp('200%'),
     },
     bgImg: {
         width: wp('100%'),

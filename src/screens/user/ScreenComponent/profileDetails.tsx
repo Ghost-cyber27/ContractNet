@@ -8,8 +8,18 @@ import {
     ScrollView 
 } from "react-native";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation, NavigationProp, useRoute, RouteProp } from "@react-navigation/native";
+import { UserStackParamList } from "../../../types/types";
+import { AntDesign } from "@expo/vector-icons";
+
+type CheckoutScreenNavigationProp = RouteProp<UserStackParamList, 'profileDetails'>;
+type UserScreenNavigationProp = NavigationProp<UserStackParamList, 'profileDetails'>;
 
 export function ProfileDetails(){
+    const route = useRoute<CheckoutScreenNavigationProp>();
+    const navigation = useNavigation<UserScreenNavigationProp>();
+    const {id, full_name, category, profile_picture, rating, skills, bio, email, verified} = route.params;
 
     const data = [
         {id: '1', title: 'Mobile App UI Design', description: 'To create a UI for a mobile app', category: 'Design & Creative', budget: '1254.02', status: 'open'},
@@ -18,45 +28,56 @@ export function ProfileDetails(){
     ];
 
     return(
-        <ScrollView style={styles.container}>
-            {/*Header*/}
-            <View style={styles.header}>
-                <Image
-                    source={require('../../../../assets/icons/Vynil Icons.png')}
-                    style={styles.proPic}
-                />
-                <View style={styles.proTextView}>
-                    <Text style={styles.proName}>Full Name, verified</Text>
-                    <Text style={styles.proNorm}>Service</Text>
-                    <Text style={styles.proNorm}>Rating</Text>
-                </View>
-            </View>
-            {/*Body*/}
-            <View style={styles.body}>
-                <Text style={styles.bodyHeaderText}>Bio</Text>
-                <Text>lksdnvsdvs sdlv sdv sdlsdkv</Text>
-                <Text style={styles.bodyHeaderText}>Skills</Text>
-                <Text>Writing, Programming, Communication</Text>
-                <Text style={styles.bodyHeaderText}>Jobs Completed</Text>
-                {data.map((item) => (
-                    <View key={item.id} style={styles.jobDisplay}>
-                        <Text style={styles.jobTitle}>{item.title}</Text>
-                        <Text style={styles.jobNorm}>{item.category}</Text>
-                        <Text style={styles.jobDes}>{item.description}</Text>
-                        <View style={styles.jobView}>
-                            <Text style={styles.jobPrice}>${item.budget}</Text>
-                            <Text style={{
-                                left: wp('50%'),
-                                position: 'absolute',
-                                fontSize: 16,
-                                fontWeight: '500',
-                                color: item.status == 'open' ? 'green' : item.status == 'closed' ? 'red' : 'yellow'
-                            }}>{item.status}</Text>
-                        </View>
+        <SafeAreaView>
+            <ScrollView style={styles.container}>
+                {/*Header*/}
+                <View style={styles.header}>
+                    <Image
+                        //source={require('../../../../assets/icons/Vynil Icons.png')}
+                        source={{ uri: profile_picture }}
+                        style={styles.proPic}
+                    />
+                    <View style={styles.proTextView}>
+                        <Text style={styles.proName}>{full_name}, 
+                            {verified 
+                            ?<AntDesign 
+                                name="check-circle" 
+                                size={20} 
+                                color='#184d85' 
+                            /> 
+                            : <View></View>
+                            }</Text>
+                        <Text style={styles.proNorm}>{category}</Text>
+                        <Text style={styles.proNorm}>{rating}</Text>
                     </View>
-                ))}
-            </View>
-        </ScrollView>
+                </View>
+                {/*Body*/}
+                <View style={styles.body}>
+                    <Text style={styles.bodyHeaderText}>Bio</Text>
+                    <Text>{bio}</Text>
+                    <Text style={styles.bodyHeaderText}>Skills</Text>
+                    <Text>{skills}</Text>
+                    <Text style={styles.bodyHeaderText}>Jobs Completed</Text>
+                    {data.map((item) => (
+                        <View key={item.id} style={styles.jobDisplay}>
+                            <Text style={styles.jobTitle}>{item.title}</Text>
+                            <Text style={styles.jobNorm}>{item.category}</Text>
+                            <Text style={styles.jobDes}>{item.description}</Text>
+                            <View style={styles.jobView}>
+                                <Text style={styles.jobPrice}>${item.budget}</Text>
+                                <Text style={{
+                                    left: wp('50%'),
+                                    position: 'absolute',
+                                    fontSize: 16,
+                                    fontWeight: '500',
+                                    color: item.status == 'open' ? 'green' : item.status == 'closed' ? 'red' : 'yellow'
+                                }}>{item.status}</Text>
+                            </View>
+                        </View>
+                    ))}
+                </View>
+            </ScrollView>
+        </SafeAreaView>
     );
 };
 
@@ -64,8 +85,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 5,
-        marginTop: hp('10%'),
-        marginBottom: hp('5%')
+        backgroundColor: 'white'
     },
     header: {
         flexDirection: 'row',

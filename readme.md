@@ -8,6 +8,7 @@ react-native-responsive-screen(Done)
 
 base color: #184d85
 
+
 ----------------------------------
 Design & Creative
 Encompasses visual arts, branding, and multimedia creation, including Logo & Brand Identity, Illustration, Web & Mobile Design (UI/UX), Packaging & Merchandise Design, Photography & Image Editing, Architecture & Interior Design, and 3D Modeling & Animation

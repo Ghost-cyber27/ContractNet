@@ -6,8 +6,6 @@ import {
 } from "react-native";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
 
-//how do i do a next line in a text component in react native
-
 export function Privacy(){
 
     return(

@@ -2,7 +2,7 @@ import { api } from "./client";
 import { IMessage } from "react-native-gifted-chat";
 
 type SendPayload = {
-  text: string;
+  content: string;
   receiver_id: number;
   job_id: number;
 };
@@ -17,7 +17,7 @@ type BackendMessage = {
 
 // getConversation returns raw backend rows (array)
 export const getConversation = async (receiverId: number, jobId: number, token: string): Promise<BackendMessage[]> => {
-  const res = await api.get(`/${receiverId}/${jobId}`, {
+  const res = await api.get(`/messages/${receiverId}/${jobId}`, {
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",

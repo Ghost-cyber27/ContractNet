@@ -81,19 +81,21 @@ export type RootStackParamList = {
 export type UserStackParamList = {
     UserTabs: undefined;
     About: undefined;
-    Category: undefined;
+    Category: {name: string};
     ChangePassword: undefined;
     chatDetails: {id: number; sender_id: number};
-    jobDetails: {id: number};
+    JobDetails: {id: number, title: string, category: string, description: string, budget: number, deadline: Date, status: string};
     MyProfile: undefined;
     Privacy: undefined;
-    profileDetails: undefined;
+    profileDetails: {id:number, full_name: string, category: string, profile_picture: string, rating: number, bio: string, skills: string[], verified: boolean, email: string };
+    AddJob: undefined;
 };
 
 export type AuthStackParamList = {
     Login: undefined;
     SignUp: undefined;
     ForgotPassword: undefined;
+    OTP: {email: string};
 }
 
 export interface AppNavigatorProps {

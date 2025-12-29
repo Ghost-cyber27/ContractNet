@@ -16,6 +16,7 @@ import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-nat
 import { StatusBar } from "expo-status-bar";
 import { connectChatSocket } from "../../../services/ws";
 import { getConversation, sendMessage } from "../../../services/message";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { height } = Dimensions.get("window");
 
@@ -36,12 +37,12 @@ export function ChatDetails() {
   const wsRef = useRef<WebSocket | null>(null);
 
   // NOTE: replace with real token or pass it as prop/context
-  const token = "ljsndlnslkdbsb";
+  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo0LCJleHAiOjE3NjQ2OTg5NjgsInR5cGUiOiJhY2Nlc3MifQ.B7up9TwYs9USQq5kS5jD-Kf5lKWjraCbD87u7c1k-ek";
 
   const loadMessages = async () => {
     try {
       // getConversation returns backend rows; convert to GiftedChat format
-      const backendMessages = await getConversation(2, 1, token);
+      const backendMessages = await getConversation(1, 2, token);
       const formatted = backendMessages.map((m: any) => formatMessage(m));
       // GiftedChat expects most recent first, usually -> keep your existing order if correct
       setMessages(formatted.reverse());
@@ -79,18 +80,15 @@ export function ChatDetails() {
     };
   }, [token]); // depends only on token (or props you pass)
 
-  // strongly type newMessages param to IMessage[]
-  const onSend = useCallback(async (newMessages: IMessage[]) => {
+  const onSend = useCallback(async (newMessages: IMessage[] = []) => {
     if (!newMessages.length) return;
 
     const clientMsg = newMessages[0];
 
     try {
-      // sendMessage returns a backend response which we convert in the service,
-      // but to be safe we format it again here (id, createdAt, etc).
       const savedBackend = await sendMessage(
         {
-          text: clientMsg.text,
+          content: clientMsg.text,
           receiver_id: 2,
           job_id: 1,
         },
@@ -112,19 +110,19 @@ export function ChatDetails() {
     <InputToolbar
       {...props}
       containerStyle={{
-        borderRadius: 16,
+        borderRadius: 10,
         backgroundColor: "#f2f8fc",
         marginHorizontal: 8,
         marginTop: 5,
-        borderTopWidth: 0,
-        bottom: 20,
+        borderWidth: 0,
+        bottom: hp('1%'),
       }}
     />
   );
 
   const renderSend = (props: React.JSX.IntrinsicAttributes & SendProps<IMessage>) => (
     <Send {...props}>
-      <View style={{ marginBottom: 11 }}>
+      <View style={{ marginBottom: 12, paddingTop: 5 }}>
         <AntDesign name="send" size={24} color="#0075FD" />
       </View>
     </Send>
@@ -141,26 +139,28 @@ export function ChatDetails() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.heading}>Chat with AI</Text>
       </View>
 
-      <GiftedChat
-        messages={messages}
-        onSend={onSend}
-        user={{
-          _id: 1, // current_user_id
-        }}
-        renderAvatar={null}
-        renderBubble={renderBubble}
-        renderInputToolbar={renderInputToolBar}
-        renderSend={renderSend}
-      />
+      <View style={styles.chatView}>
+        <GiftedChat
+          messages={messages}
+          onSend={onSend}
+          user={{
+            _id: 1, // current_user_id
+          }}
+          renderAvatar={null}
+          renderBubble={renderBubble}
+          renderInputToolbar={renderInputToolBar}
+          renderSend={renderSend}
+        />
+      </View>
 
       {Platform.OS === "android" && <KeyboardAvoidingView behavior="padding" />}
       <StatusBar style="auto" />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -214,5 +214,11 @@ const styles = StyleSheet.create({
     alignItems: "center", 
     justifyContent: "center", 
     backgroundColor: "#184d85" 
+  },
+  chatView: {
+    marginBottom: 50,
+    backgroundColor: 'white',
+    width: wp('100%'),
+    height: hp('90%'),
   },
 });

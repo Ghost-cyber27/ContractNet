@@ -8,25 +8,44 @@ import {
     StyleSheet,
     Image,
     KeyboardAvoidingView,
-    Platform
+    Platform,
+    ActivityIndicator
 } from "react-native";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { useAuthStore } from "../../services/AuthContext";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
+import { AuthStackParamList } from "../../types/types";
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+import axios from "axios";
+
+type AuthScreenNavigationProp = NavigationProp<AuthStackParamList, 'Login'>;
 
 export default function Login(){
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
     const [seePass, setSeePass] = useState<boolean>(true);
+    const navigation = useNavigation<AuthScreenNavigationProp>();
 
     const login = async () => {
+        setLoading(true);
         try {
             await useAuthStore.getState().login(email, password);
-            //navigate to homescreen
+            
             console.log("Login Success");
+            setLoading(false);
         } catch (err) {
             console.log("Login failed:", err);
+            alert(`Login Failed: ${err}`);
+            setLoading(false);
+            if (axios.isAxiosError(err) && err.response) {
+                console.error('API Error:', err.response.data); // <-- This is the key
+                console.error('Status Code:', err.response.status);
+            } else {
+                console.error('An unknown error occurred:', err);
+            }
+            throw err;
         }
     };
 
@@ -67,16 +86,19 @@ export default function Login(){
                       </TouchableOpacity>
                     : <TouchableOpacity onPress={() => setSeePass(true)}>
                         <Feather name="eye" size={24} color="black" style={styles.iconPass}/>
-                      </TouchableOpacity>}
+                      </TouchableOpacity>
+                    }
                 </View>
             </View>
-            <TouchableOpacity style={styles.fPassView}>
+            <TouchableOpacity style={styles.fPassView} onPress={() => navigation.navigate('ForgotPassword')}>
                 <Text style={styles.fPass}>Forgot Password</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.btn} onPress={() => login()}>
-                <Text style={styles.btnText}>LOGIN</Text>
+                {loading 
+                ? <ActivityIndicator size={"large"} color="white" /> 
+                :<Text style={styles.btnText}>LOGIN</Text>}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.regs}>
+            <TouchableOpacity style={styles.regs} onPress={() => navigation.navigate('SignUp')}>
                 <Text style={styles.regsText}>Don't have an account? <Text style={{fontWeight: 'bold', color: '#184d85'}}>Sign Up</Text></Text>
             </TouchableOpacity>
             <StatusBar style="auto" />
@@ -87,7 +109,7 @@ export default function Login(){
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: 'white'
+        backgroundColor: 'white',
     },
     bgImg: {
         width: wp('100%'),
@@ -156,34 +178,3 @@ const styles = StyleSheet.create({
         fontSize: 16,
     }
 });
-/*
-LOGIN EXAMPLE
-import { useAuthStore } from "../store/useAuthStore";
-
-const login = async () => {
-  try {
-    await useAuthStore.getState().login("john", "123456");
-  } catch (err) {
-    console.log("Login failed:", err);
-  }
-};
-
-USING IT INSIDE A COMPONENT
-import { useAuthStore } from "../store/useAuthStore";
-
-export default function Profile() {
-  const { user, token, role, logout } = useAuthStore();
-
-  return (
-    <View>
-      <Text>Welcome {user?.username}</Text>
-      <Text>Your role: {role}</Text>
-      <TouchableOpacity onPress={logout}>
-        <Text>Logout</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-
-*/
