@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
     View,
     Text,
@@ -13,18 +13,45 @@ import {
 } from 'react-native';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation, RouteProp, useRoute, NavigationProp } from '@react-navigation/native';
+import { useNavigation, RouteProp, useRoute, NavigationProp, useFocusEffect } from '@react-navigation/native';
 import { UserStackParamList } from "../../../types/types";
 import { api } from "../../../services/client";
 import { useAuthStore } from "../../../services/AuthContext";
 import { Dropdown } from 'react-native-element-dropdown';
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import axios from "axios";
+import { users, truncate } from "../../../utils/functions";
+import { AntDesign } from "@expo/vector-icons";
 
 type DetailsScreenNavigationProp = RouteProp<UserStackParamList, 'JobDetails'>;
 
 type GoBackScreenNavigationProp = NavigationProp<UserStackParamList, 'JobDetails'>;
 
-type bidData = {};
+type bidData = {
+    id: number;
+    job_id: number;
+    freelancer_id: number;
+    name: string;
+    bid_amount: string;
+    proposal: string;
+    status: string;
+    created_at: string;
+};
+
+type User = {
+    id: number;
+    full_name: string;
+    email: string;
+    bio: string;
+    category: string;
+    occupation: string;
+    profile_picture: string | null;
+    rating: number;
+    role: string;
+    skills: string;
+}
+
+//add verified in user model
 
 export function JobDetails(){
     const [isVisible, setIsVisible] = useState(false);
@@ -43,8 +70,11 @@ export function JobDetails(){
     const [dataLoad, setDataLoad] = useState(false);
     const [showPicker, setShowPicker] = useState(false);
     const [showText, setShowText] = useState(false);
-    const [stats, useStats] = useState("");
+    const [stats, setStats] = useState("");
     const [delLoad, setDelLoad] = useState(false);
+    const [amount, setAmount] = useState('');
+    const [proposal, setProposal] = useState('');
+    const [freeUser, setFreeUser] = useState<User | null>(null);
 
     const categoryData = [
         { label: 'Select Category...', value: '1' },
@@ -69,8 +99,9 @@ export function JobDetails(){
 
     const fetchBid = async() => {
         setLoading(true);
+        console.log('id: ', id);
         try {
-            const res = await api.get(`/bids/jobs/${id}`,
+            const res = await api.get(`/bids/job/${id}`,
                 {
                     headers: {
                         "Authorization": `Bearer ${token}`,
@@ -85,8 +116,14 @@ export function JobDetails(){
             setBid(res.data);
             setLoading(false);
 
-        } catch (error) {
-            console.error("Error: ", error);
+        } catch (err) {
+            console.error("Error: ", err);
+            if (axios.isAxiosError(err) && err.response) {
+                console.error('API Error:', err.response.data); // <-- This is the key
+                console.error('Status Code:', err.response.status);
+            } else {
+                console.error('An unknown error occurred:', err);
+            }
             setLoading(false);
         }
     };
@@ -144,21 +181,27 @@ export function JobDetails(){
         }
     }
 
-    useEffect(() => {
-        //fetchBid();
-    },[]);
+    useFocusEffect(
+        useCallback(() => {
+            fetchBid();  // refresh every time screen is focused
+            //fetchNotifications();
+        }, [])
+    );
 
-    const proceedBid = (stats: string) => {
-        if (stats == "Accepted" || stats == "Pending") {
-            setIsVisible(true)
+    const proceedBid = async(id: number, stat: string, bid: string, pros: string) => {
+        const info = await users(id);
+
+        if (info) {
+            setFreeUser(info);
+            console.log('user box: ', freeUser);
+            if (stat == "accepted" || stat == "pending") {
+                setIsVisible(true);
+                setAmount(bid);
+                setProposal(pros);
+                setStats(stat);
+            }
         }
-    }
-
-    const data = [
-        {id: '1', name: 'DJ Oscar',proposal: 'jlsdlvjsd sldlv sdlv sdlv sldv', bid_amount: '20,000', status: 'Pending'},
-        {id: '2', name: 'Malvin Kay',proposal: 'lksdlvk sd vlsd vlsdlv sdsdvlsd', bid_amount: '123,000', status: 'Rejected'},
-        {id: '3', name: 'Jay Jay Kay',proposal: 'ldlsdlknlskdnvkdv sdkvdkl ddv', bid_amount: '100,000', status: 'Accepted'},
-    ];
+    };
     //for date date.split("T")[1].slice(0, 5)
     //.toISOString().split("T")[0]
     return(
@@ -176,9 +219,9 @@ export function JobDetails(){
             {loading 
             ? <ActivityIndicator size={"large"} color={"blue"} />
             : <FlatList
-                data={data}
+                data={bid}
                 renderItem={({item}) => (
-                <TouchableOpacity style={styles.bidCard} onPress={() => proceedBid(item.status)}>
+                <TouchableOpacity style={styles.bidCard} onPress={() => proceedBid(item.freelancer_id ,item.status, item.bid_amount, item.proposal)}>
                     <View style={styles.bidRoll}>
                         <Image
                             source={require('../../../../assets/bid.jpg')}
@@ -186,13 +229,15 @@ export function JobDetails(){
                         />
                         <Text style={styles.bidText}>{item.name}</Text>
                     </View>
-                    <Text style={{fontSize: 16}}>Proposal</Text>
-                    <Text>{item.proposal}</Text>
-                    <Text>Bid Amount: ${item.bid_amount}</Text>
-                    <Text>status: {item.status}</Text>
+                    <View>
+                        <Text style={{fontSize: 16, fontWeight: '600'}}>Proposal</Text>
+                        <Text>{truncate(item.proposal, 30)}</Text>
+                        <Text><Text style={{fontSize: 16, fontWeight: '600'}}>Bid Amount:</Text> ₦{item.bid_amount}</Text>
+                        <Text><Text style={{fontSize: 16, fontWeight: '600'}}>status:</Text> {item.status}</Text>
+                    </View>
                 </TouchableOpacity>
             )}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item.id.toString()}
             style={styles.bidView}
             ListFooterComponent={
                 <>
@@ -238,15 +283,15 @@ export function JobDetails(){
                             <Text style={{
                                 fontSize: 20,
                                 fontWeight: '500'
-                            }}>Full Name, verified</Text>
+                            }}>{freeUser?.full_name}, {freeUser?.id && <AntDesign name="check-circle" color={'blue'} size={24} />}</Text>
                             <Text style={{
                                 fontSize: 16,
                                 fontWeight: '300'
-                            }}>Service</Text>
+                            }}>{freeUser?.occupation}</Text>
                             <Text style={{
                                 fontSize: 16,
                                 fontWeight: '300'
-                            }}>Rating</Text>
+                            }}>⭐{freeUser?.rating}</Text>
                         </View>
                     </View>
                     {/*Body*/}
@@ -266,12 +311,12 @@ export function JobDetails(){
                                 fontSize: 16,
                                 fontWeight: 'bold'
                             }}>Proposal</Text>
-                            <Text>khvkhvhfkhf ugg ug gkgug uguog ug</Text>
+                            <Text>{proposal}</Text>
                             <Text style={{
                                 fontSize: 16,
                             }}><Text style={{
                                 fontWeight: 'bold'
-                            }}>Bid Amount:</Text> $200,000</Text>
+                            }}>Bid Amount:</Text> ₦ {amount}</Text>
                             <Text style={{
                                 fontSize: 16,
                             }}><Text style={{
@@ -279,7 +324,7 @@ export function JobDetails(){
                             }}>Status:</Text> Pending</Text>
                         </View>
                     </View>
-                    {stats == 'Accept' && (
+                    {stats == 'pending' && (
                         <View style={{
                             flexDirection: 'row',
                             gap: wp('20%'),
@@ -287,7 +332,11 @@ export function JobDetails(){
                             alignItems: 'center',
                             justifyContent: 'center'
                         }}>
-                            <TouchableOpacity style={styles.Abtn} onPress={() => alert('leads to payment')}>
+                            <TouchableOpacity style={styles.Abtn} onPress={() => navigation.navigate('Payment',
+                                {
+                                    job_id: id
+                                }
+                                )}>
                                 <Text style={styles.bText}>Accept</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.Rbtn} onPress={() => alert('updates DB status')}>
@@ -511,21 +560,22 @@ const styles = StyleSheet.create({
     },
     bidCard: {
         width: wp('90%'),
-        height: hp('20%'),
+        height: hp('15%'),
         borderWidth: 2,
         margin: 5,
         padding: 5,
         borderColor: '#184d85',
-        borderRadius: 10
+        borderRadius: 10,
+        flexDirection: 'row',
     },
     bidRoll: {
         flexDirection: 'row',
         gap: wp('2%')
     },
     bidImg: {
-        width: wp('10%'),
-        height: hp('5%'),
-        resizeMode: 'contain'
+        width: wp('20%'),
+        height: hp('8%'),
+        resizeMode: 'cover'
     },
     bidText: {
         fontSize: 20,
@@ -600,3 +650,11 @@ const styles = StyleSheet.create({
         color: 'white'
     },
 });
+
+/*
+{freeUser.map((item) => 
+                            (
+                                
+                            )
+                        )}
+ */

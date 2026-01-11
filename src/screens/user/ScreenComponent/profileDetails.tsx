@@ -20,7 +20,7 @@ export function ProfileDetails(){
     const route = useRoute<CheckoutScreenNavigationProp>();
     const navigation = useNavigation<UserScreenNavigationProp>();
     const {id, full_name, category, profile_picture, rating, skills, bio, email, verified} = route.params;
-
+    //how to get jobs completed by a specific freelancer
     const data = [
         {id: '1', title: 'Mobile App UI Design', description: 'To create a UI for a mobile app', category: 'Design & Creative', budget: '1254.02', status: 'open'},
         {id: '2', title: 'Website UI Design', description: 'To create a UI for a website', category: 'Design & Creative', budget: '3000.0', status: 'closed'},
@@ -28,56 +28,56 @@ export function ProfileDetails(){
     ];
 
     return(
-        <SafeAreaView>
-            <ScrollView style={styles.container}>
-                {/*Header*/}
-                <View style={styles.header}>
-                    <Image
-                        //source={require('../../../../assets/icons/Vynil Icons.png')}
-                        source={{ uri: profile_picture }}
-                        style={styles.proPic}
-                    />
-                    <View style={styles.proTextView}>
-                        <Text style={styles.proName}>{full_name}, 
-                            {verified 
-                            ?<AntDesign 
-                                name="check-circle" 
-                                size={20} 
-                                color='#184d85' 
-                            /> 
-                            : <View></View>
-                            }</Text>
-                        <Text style={styles.proNorm}>{category}</Text>
-                        <Text style={styles.proNorm}>{rating}</Text>
-                    </View>
+        <ScrollView style={styles.container}>
+            {/*Header*/}
+            <View style={styles.header}>
+                <Image
+                    source={require('../../../../assets/icons/Vynil Icons.png')}
+                    //source={{ uri: profile_picture }}
+                    style={styles.proPic}
+                />
+                <View style={styles.proTextView}>
+                    <Text style={styles.proName}>{full_name}, 
+                        {verified 
+                        ?<AntDesign 
+                            name="check-circle" 
+                            size={20} 
+                            color='#184d85' 
+                        /> 
+                        : <View></View>
+                        }</Text>
+                    <Text style={styles.proNorm}>{email}</Text>
+                    <Text style={styles.proNorm}>{category}</Text>
+                    <Text style={styles.proNorm}>⭐{rating}</Text>
                 </View>
-                {/*Body*/}
-                <View style={styles.body}>
-                    <Text style={styles.bodyHeaderText}>Bio</Text>
-                    <Text>{bio}</Text>
-                    <Text style={styles.bodyHeaderText}>Skills</Text>
-                    <Text>{skills}</Text>
-                    <Text style={styles.bodyHeaderText}>Jobs Completed</Text>
-                    {data.map((item) => (
-                        <View key={item.id} style={styles.jobDisplay}>
-                            <Text style={styles.jobTitle}>{item.title}</Text>
-                            <Text style={styles.jobNorm}>{item.category}</Text>
-                            <Text style={styles.jobDes}>{item.description}</Text>
-                            <View style={styles.jobView}>
-                                <Text style={styles.jobPrice}>${item.budget}</Text>
-                                <Text style={{
-                                    left: wp('50%'),
-                                    position: 'absolute',
-                                    fontSize: 16,
-                                    fontWeight: '500',
-                                    color: item.status == 'open' ? 'green' : item.status == 'closed' ? 'red' : 'yellow'
-                                }}>{item.status}</Text>
-                            </View>
+            </View>
+            {/*Body*/}
+            <View style={styles.body}>
+                <Text style={styles.bodyHeaderText}>Bio</Text>
+                <Text>{bio}</Text>
+                <Text style={styles.bodyHeaderText}>Skills</Text>
+                <Text>{skills}</Text>
+                <Text style={styles.bodyHeaderText}>Jobs Completed</Text>
+                {data.map((item) => (
+                    <View key={item.id} style={styles.jobDisplay}>
+                        <Text style={styles.jobTitle}>{item.title}</Text>
+                        <Text style={styles.jobNorm}>{item.category}</Text>
+                        <Text style={styles.jobDes}>{item.description}</Text>
+                        <View style={styles.jobView}>
+                            <Text style={styles.jobPrice}>₦{item.budget}</Text>
+                            <Text style={{
+                                left: wp('50%'),
+                                position: 'absolute',
+                                fontSize: 16,
+                                fontWeight: '500',
+                                color: item.status == 'open' ? 'green' : item.status == 'closed' ? 'red' : 'yellow'
+                            }}>{item.status}</Text>
                         </View>
-                    ))}
-                </View>
-            </ScrollView>
-        </SafeAreaView>
+                    </View>
+                ))}
+                <View></View>
+            </View>
+        </ScrollView>
     );
 };
 

@@ -42,7 +42,7 @@ export const AllChats = async(token: string) => {
 };
 
 // sendMessage posts to /messages/ and returns a GiftedChat-like message
-export const sendMessage = async (data: SendPayload, token: string): Promise<IMessage | BackendMessage> => {
+export const sendMessage = async (data: SendPayload, token: string) => {
   const res = await api.post(`/messages/`, data, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -50,13 +50,7 @@ export const sendMessage = async (data: SendPayload, token: string): Promise<IMe
     },
   });
 
-  // Convert FastAPI response to GiftedChat IMessage shape
-  return {
-    _id: res.data.id,
-    text: res.data.content,
-    createdAt: new Date(res.data.sent_at),
-    user: { _id: res.data.sender_id },
-  };
+  return res.data;
 };
 
 // services/message.ts

@@ -17,6 +17,7 @@ import OTP from "../Auth/OTP";
 import { AddJob } from "../user/ScreenComponent/addJob";
 import { Category } from "../user/ScreenComponent/Category";
 import { useAuthStore } from "../../services/AuthContext";
+import { Payment } from "../user/ScreenComponent/payment";
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -44,15 +45,18 @@ export const AppStackNav: React.FC = () => {
   return (
       <UserStack.Navigator screenOptions={{ headerShown: false }}>
         <UserStack.Screen name="UserTabs" component={UserTabs} />
-        <UserStack.Screen name="chatDetails" component={ChatDetails} options={{headerShown: true}}/>
+        <UserStack.Screen name="chatDetails" component={ChatDetails} options={{headerShown: false}}/>
         <UserStack.Screen name="JobDetails" component={JobDetails} options={{
           headerShown: true,
           }}/>
-        <UserStack.Screen name="profileDetails" component={ProfileDetails} options={{headerShown: true}}/>
+        <UserStack.Screen name="profileDetails" component={ProfileDetails} options={{headerShown: true, headerTitle: ''}}/>
         <UserStack.Screen name="AddJob" component={AddJob} options={{headerShown: true}}/>
         <UserStack.Screen name="Category" component={Category} options={{
           headerShown: true, 
           }}/>
+        <UserStack.Screen name="Payment" component={Payment} options={{
+        headerShown: false, 
+        }}/>
       </UserStack.Navigator>
   );
 };

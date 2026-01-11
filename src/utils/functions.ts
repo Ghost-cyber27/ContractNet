@@ -20,3 +20,21 @@ export const uploadImage = async() => {
 
     // return image;
 }
+
+export const users = async(id: Number) => {
+    try {
+        const res = await api.get(`/users/${id}`);
+
+        if(!res) console.log("Failed to fetch user");
+
+        console.log('Freelancer acct: ', res.data);
+
+        return res.data;
+    } catch (error) {
+        console.error(error);   
+    }
+};
+
+export function truncate(text: string, max: number){
+	return text.length > max ? text.slice(0, max) + "...": text;
+}

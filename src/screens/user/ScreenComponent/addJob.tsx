@@ -30,6 +30,7 @@ export function AddJob(){
     const [showText, setShowText] = useState(false);
     const [loading, setLoading] = useState(false);
     const [value, setValue] = useState('1');
+    const username = useAuthStore((s) => s.user.full_name);
 
     const data = [
         { label: 'Select Category...', value: '1' },
@@ -56,6 +57,7 @@ export function AddJob(){
         setLoading(true);
         try {
             const res = await api.post('/jobs/',{
+            	client_name: username,
                 title: title,
                 description: des,
                 category: value,

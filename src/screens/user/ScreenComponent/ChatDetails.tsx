@@ -1,70 +1,114 @@
 // ChatDetails.tsx
 import { AntDesign } from "@expo/vector-icons";
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { View, Text, StyleSheet, Dimensions, Platform, KeyboardAvoidingView } from "react-native";
-import {
-  GiftedChat,
-  Bubble,
-  InputToolbar,
-  Send,
-  IMessage,
-  InputToolbarProps,
-  SendProps,
-  BubbleProps,
-} from "react-native-gifted-chat";
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TextInput,
+  TouchableOpacity,
+  Keyboard,
+  Animated, 
+  FlatList
+} from "react-native";
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
-import { StatusBar } from "expo-status-bar";
 import { connectChatSocket } from "../../../services/ws";
 import { getConversation, sendMessage } from "../../../services/message";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation, RouteProp, useRoute, NavigationProp, useFocusEffect } from '@react-navigation/native';
+import { UserStackParamList } from "../../../types/types";
+import { useAuthStore } from "../../../services/AuthContext";
 
-const { height } = Dimensions.get("window");
+type ChatScreenNavigationProp = RouteProp<UserStackParamList, 'chatDetails'>;
 
-// Helper to ensure a backend message (any shape) becomes an IMessage
-const formatMessage = (m: any): IMessage => ({
-  _id: m.id ?? m._id ?? Math.random().toString(), // fallback id
-  text: m.content ?? m.text ?? "",
-  createdAt: m.sent_at ? new Date(m.sent_at) : m.createdAt ? new Date(m.createdAt) : new Date(),
-  user: {
-    _id: m.sender_id ?? m.user?._id ?? 0,
-    ...(m.user?.name ? { name: m.user.name } : {}),
-    ...(m.user?.avatar ? { avatar: m.user.avatar } : {}),
-  },
-});
+interface Message {
+  id: number;
+  sender_id: number;
+  receiver_id?: number;
+  content: string;
+  created_at: string;
+}
+
 
 export function ChatDetails() {
-  const [messages, setMessages] = useState<IMessage[]>([]);
+  const keyboardOffset = useRef(new Animated.Value(0)).current;
+  const [messages, setMessages] = useState<Message[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
-
-  // NOTE: replace with real token or pass it as prop/context
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo0LCJleHAiOjE3NjQ2OTg5NjgsInR5cGUiOiJhY2Nlc3MifQ.B7up9TwYs9USQq5kS5jD-Kf5lKWjraCbD87u7c1k-ek";
+  const route = useRoute<ChatScreenNavigationProp>();
+  const { id, receiver_id } = route.params;
+  const key = useAuthStore((s) => s.token);
+  const myId = useAuthStore((s) => s.user.id);
+  const token = `${key}`;
+  const [msg, setMsg] = useState('');
+  const flatListRef = useRef<FlatList>(null);
+  
 
   const loadMessages = async () => {
     try {
-      // getConversation returns backend rows; convert to GiftedChat format
-      const backendMessages = await getConversation(1, 2, token);
-      const formatted = backendMessages.map((m: any) => formatMessage(m));
-      // GiftedChat expects most recent first, usually -> keep your existing order if correct
-      setMessages(formatted.reverse());
+      const res = await getConversation(receiver_id, id, token);
+
+      if (!res) return;
+
+      const mapped: Message[] = res.map((msg: any) => ({
+        id: msg.id,
+        sender_id: msg.sender_id,
+        receiver_id: msg.receiver_id,
+        content: msg.content,
+        created_at: msg.created_at,
+      }));
+
+      setMessages(mapped);
     } catch (err) {
       console.warn("Failed to load messages:", err);
     }
   };
 
+
   useEffect(() => {
     loadMessages();
     // run once on mount
+    const show = Keyboard.addListener(
+        "keyboardDidShow",
+        (e) => {
+            Animated.timing(keyboardOffset, {
+                toValue: e.endCoordinates.height,
+                duration: 250,
+                useNativeDriver: false,
+            }).start();
+        }
+    );
+
+    const hide = Keyboard.addListener(
+        "keyboardDidHide",
+        () => {
+            Animated.timing(keyboardOffset, {
+                toValue: 0,
+                duration: 250,
+                useNativeDriver: false,
+            }).start();
+        }
+    );
+
+    return () => {
+        show.remove();
+        hide.remove();
+    }
   }, []);
 
   useEffect(() => {
-    // connectChatSocket will send raw backend message shape; format it before appending
     const ws = connectChatSocket(token, (rawMsg: any) => {
       try {
-        // If this message belongs to the current job/receiver logic, check fields accordingly
-        // Example check (adjust depending on server payload):
-        if (rawMsg.job_id === 2) {
-          const formatted = formatMessage(rawMsg);
-          //setMessages(prev => GiftedChat.append(prev, formatted));
+        if (rawMsg.job_id === id) {
+          setMessages(prev => [
+              ...prev,
+              {
+                id: rawMsg.id,
+                sender_id: rawMsg.sender_id,
+                receiver_id: rawMsg.receiver_id,
+                content: rawMsg.content,
+                created_at: rawMsg.created_at,
+              }
+            ]);
         }
       } catch (e) {
         console.warn("Error processing websocket message:", e);
@@ -78,88 +122,102 @@ export function ChatDetails() {
       } catch (e) {}
       wsRef.current = null;
     };
-  }, [token]); // depends only on token (or props you pass)
+  }, [token]);
 
-  const onSend = useCallback(async (newMessages: IMessage[] = []) => {
+  const onSend = useCallback(async (newMessages: Message[] = []) => {
     if (!newMessages.length) return;
 
     const clientMsg = newMessages[0];
 
     try {
-      const savedBackend = await sendMessage(
+      const res = await sendMessage(
         {
-          content: clientMsg.text,
-          receiver_id: 2,
-          job_id: 1,
+          receiver_id,
+          job_id: id,
+          content: clientMsg.content
         },
         token
       );
 
-      // sendMessage already returns a formatted GiftedChat object in the service,
-      // but normalize again to be robust:
-      const formatted = formatMessage(savedBackend);
-      //setMessages(prev => GiftedChat.append(prev, formatted));
-    } catch (err) {
-      console.warn("Failed to send message:", err);
-      // Optionally you can still append the optimistic message:
-      // setMessages(prev => GiftedChat.append(prev, clientMsg));
+      setMessages(prev => [...prev, {
+        id: res.id,
+        sender_id: myId,
+        receiver_id: receiver_id,
+        content: res.content,
+        created_at: res.created_at,
+      }]);
+
+      setMsg("");
+
+    } catch (error) {
+      console.warn("Failed to send message:", error);
     }
   }, [token]);
 
-  const renderInputToolBar = (props: React.JSX.IntrinsicAttributes & InputToolbarProps<IMessage>) => (
-    <InputToolbar
-      {...props}
-      containerStyle={{
-        borderRadius: 10,
-        backgroundColor: "#f2f8fc",
-        marginHorizontal: 8,
-        marginTop: 5,
-        borderWidth: 0,
-        bottom: hp('1%'),
-      }}
-    />
-  );
-
-  const renderSend = (props: React.JSX.IntrinsicAttributes & SendProps<IMessage>) => (
-    <Send {...props}>
-      <View style={{ marginBottom: 12, paddingTop: 5 }}>
-        <AntDesign name="send" size={24} color="#0075FD" />
-      </View>
-    </Send>
-  );
-
-  const renderBubble = (props: React.JSX.IntrinsicAttributes & BubbleProps<IMessage>) => (
-    <Bubble
-      {...props}
-      wrapperStyle={{
-        left: { backgroundColor: "#f2f8fc" },
-        right: { backgroundColor: "#0075FD" },
-      }}
-    />
-  );
-
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.heading}>Chat with AI</Text>
-      </View>
-
-      <View style={styles.chatView}>
-        <GiftedChat
-          messages={messages}
-          onSend={onSend}
-          user={{
-            _id: 1, // current_user_id
-          }}
-          renderAvatar={null}
-          renderBubble={renderBubble}
-          renderInputToolbar={renderInputToolBar}
-          renderSend={renderSend}
-        />
-      </View>
-
-      {Platform.OS === "android" && <KeyboardAvoidingView behavior="padding" />}
-      <StatusBar style="auto" />
+      {/*Header*/}
+            <View style={styles.header}>
+              <TouchableOpacity style={{top: hp('0.5%')}} onPress={() => console.log(token)}>
+                <AntDesign name="arrow-left" size={24} color='black' />
+              </TouchableOpacity>
+              <Text style={styles.heading}>Chat with AI</Text>
+            </View>
+            {/*Content Body*/}
+            <View style={styles.chatView}>
+                <FlatList
+                    data={messages}
+                    keyExtractor={(item) => item.id.toString()}
+                    contentContainerStyle={{ padding: 10 }}
+                    ref={flatListRef}
+                    onContentSizeChange={() =>
+                        flatListRef.current?.scrollToEnd({ animated: true })
+                    }
+                    renderItem={({ item }) => (
+                        <View style={{padding: 5}}>
+                            <View
+                            style={[
+                                styles.msgBubble,
+                                item.sender_id === myId
+                                ? styles.myMessage
+                                : styles.theirMessage
+                            ]}
+                            >
+                                <Text style={styles.msgText}>{item.content}</Text>
+                                <Text style={{color: 'white', fontSize: 12}}>{new Date(item.created_at).toLocaleTimeString()}</Text>
+                            </View>
+                            
+                        </View>
+                    )}
+                />
+            </View>
+            {/*Text input*/}
+            <Animated.View
+                style={{
+                    position: "absolute",
+                    bottom: 20,
+                    left: 0,
+                    right: 0,
+                    transform: [{translateY: Animated.multiply(keyboardOffset, -1)}],
+                    backgroundColor: 'white',
+                    padding: 10
+                }}
+            >
+                <View style={styles.inputView}>
+                    <TextInput
+                            multiline
+                            placeholder="Type a message"
+                            onChangeText={(text) => setMsg(text)}
+                            value={msg} 
+                            style={styles.textInput}
+                            onSubmitEditing={Keyboard.dismiss}
+                        />
+                    <TouchableOpacity style={styles.btn} //onPress={() => onSend()}
+                    >
+                      <AntDesign name="send" color="white" size={24} />
+                    </TouchableOpacity>
+                </View>
+            </Animated.View>
     </SafeAreaView>
   );
 }
@@ -170,13 +228,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff" 
   },
   header: {
-    paddingTop: height * 0.07,
-    flexDirection: "row",
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#DDDDDD",
-    paddingVertical: 8,
-    backgroundColor: "#f2f8fc",
+    height: hp('10%'),
+    flexDirection: 'row',
+    padding: 10,
+    bottom: hp('5%'),
+    backgroundColor: 'white',
+    elevation: 10,
+    alignItems: 'center',
+    paddingTop: hp('4%')
   },
   heading: { 
     fontWeight: "500", 
@@ -205,7 +264,8 @@ const styles = StyleSheet.create({
     height: hp("7%"), 
     borderRadius: 10, 
     borderColor: "#184d85", 
-    padding: 5 
+    padding: 5,
+    right: wp('4%') 
   },
   btn: { 
     width: wp("15%"), 
@@ -213,12 +273,46 @@ const styles = StyleSheet.create({
     borderRadius: 10, 
     alignItems: "center", 
     justifyContent: "center", 
-    backgroundColor: "#184d85" 
+    backgroundColor: "#184d85",
+    right: wp('4%')  
   },
   chatView: {
-    marginBottom: 50,
     backgroundColor: 'white',
     width: wp('100%'),
     height: hp('90%'),
+    bottom: hp('3.5%')
+  },
+  msgBubble: {
+      padding: 10,
+      marginVertical: 5,
+      maxWidth: '75%',
+      borderRadius: 10,
+  },
+  myMessage: {
+      backgroundColor: '#184d85',
+      alignSelf: 'flex-end',
+  },
+  theirMessage: {
+      backgroundColor: '#333',
+      alignSelf: 'flex-start',
+  },
+  msgText: {
+      color: 'white',
+      fontSize: 16,
+  },
+  inputView: {
+      gap: wp('1%'),
+      padding: 10,
+      flexDirection: 'row',
+      backgroundColor: 'white',
+  },
+  texting: {
+      fontSize: 16,
+      width: '100%',
+  },
+  btnText: {
+      fontSize: 16,
+      color: 'white',
+      fontWeight: '500'
   },
 });

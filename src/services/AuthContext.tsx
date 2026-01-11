@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { api, fetchProfile } from "./client";
 import {jwtDecode} from "jwt-decode";
+import axios from "axios";
 
 interface AuthState {
   user: any | null;
@@ -50,7 +51,7 @@ export const useAuthStore = create<AuthState>()(
               email: data.email,
               password: data.password,
               role: data.role,
-              profile_picture: data.profile_picture
+              //profile_picture: data.profile_picture
             },
             {
               headers: {
@@ -68,6 +69,12 @@ export const useAuthStore = create<AuthState>()(
           set({ loading: false });
         } catch (err) {
           console.log("Signup error:", err);
+          if (axios.isAxiosError(err) && err.response) {
+                console.error('API Error:', err.response.data); // <-- This is the key
+                console.error('Status Code:', err.response.status);
+            } else {
+                console.error('An unknown error occurred:', err);
+            }
           set({ loading: false });
           throw err;
         }

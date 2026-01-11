@@ -83,10 +83,11 @@ export type UserStackParamList = {
     About: undefined;
     Category: {name: string};
     ChangePassword: undefined;
-    chatDetails: {id: number; sender_id: number};
+    chatDetails: {id: number; receiver_id: number};
     JobDetails: {id: number, title: string, category: string, description: string, budget: number, deadline: Date, status: string};
     MyProfile: undefined;
     Privacy: undefined;
+    Payment: {job_id: number};
     profileDetails: {id:number, full_name: string, category: string, profile_picture: string, rating: number, bio: string, skills: string[], verified: boolean, email: string };
     AddJob: undefined;
 };

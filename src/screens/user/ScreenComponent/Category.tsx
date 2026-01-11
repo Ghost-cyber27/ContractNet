@@ -39,14 +39,11 @@ export function Category(){
     const token = useAuthStore((s) => s.token);
     const [catData, setCatData] = useState<categoryData[]>([]);
     const [loading, setLoading] = useState(false);
-    const data = [
-        {id: '1', img: require('../../../../assets/icons/Vynil Icons.png'), name: 'John Doe', email: 'JohnDoe@gmail.com', category: name, verified: true}
-    ];
 
     const fetchCategory = async() => {
         setLoading(true);
         try {
-            const res = await api.get(`/users/category/${encodeURIComponent(name)}`,
+            const res = await api.get(`/users/category/${name}`,
                 {
                     headers: {
                         "Authorization": `Bearer ${token}`,
@@ -99,7 +96,11 @@ export function Category(){
                             email: item.email
                         }
                     )}>
-                        <Image source={{uri: item.profile_picture}} style={styles.img}/>
+                        <Image 
+                            source={require('../../../../assets/icons/Vynil Icons.png')}
+                            //{uri: item.profile_picture}
+                            style={styles.img}
+                         />
                         <View style={styles.textView}>
                             <View style={{flexDirection: 'row'}}>
                                 <Text style={styles.nameText}>{item.full_name}</Text>
@@ -113,7 +114,7 @@ export function Category(){
                                     : <View></View>}
                             </View>
                             <Text numberOfLines={0.5}>{item.email}</Text>
-                            <Text>{item.rating}</Text>
+                            <Text>⭐{item.rating}</Text>
                         </View>
                     </TouchableOpacity>
                 )}
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         margin: 5,
         width: wp('95%'),
-        height: hp('20%'),
+        height: hp('15%'),
         backgroundColor: 'white',
         borderRadius: 10,
         elevation: 2
@@ -146,8 +147,8 @@ const styles = StyleSheet.create({
         fontWeight: '600'
     },
     img: {
-        width: wp('50%'),
-        height: hp('20%'),
+        width: wp('40%'),
+        height: hp('15%'),
         resizeMode: 'contain'
     },
     verify: {

@@ -1,9 +1,10 @@
-import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { RootNavigator } from './src/screens/navigation/RootNavigation';
 import { AddJob } from './src/screens/user/ScreenComponent/addJob';
 import * as Notifications from 'expo-notifications';
 import { useAuthStore } from './src/services/AuthContext';
+import { api } from './src/services/client';
 
 // await Notifications.requestPermissionsAsync();
 
@@ -13,6 +14,16 @@ import { useAuthStore } from './src/services/AuthContext';
 
 export default function App() {
   
+  useEffect(() => {
+    const testing = async() => {
+      const res = await api.get('/');
+
+      console.log("Testing: ", res.data);
+    }
+
+    testing();
+  }, []);
+
   return (
     <RootNavigator/>
   );

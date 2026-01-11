@@ -58,31 +58,31 @@ export default function SignUp(){
     const signup = async() => {
         setLoading(true)
         try {
-            const formData = new FormData();
-            formData.append('file',{
-                uri: `${imgUri}`,
-                name: `${imgName}`,
-                type: `${imgType}`
-                } as any
-            );
+            // const formData = new FormData();
+            // formData.append('file',{
+            //     uri: `${imgUri}`,
+            //     name: `${imgName}`,
+            //     type: `${imgType}`
+            //     } as any
+            // );
 
-            const proPic = await api.post('/upload/',
-                formData,
-                {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    },
-                }
-            );
+            // const proPic = await api.post('/upload/',
+            //     formData,
+            //     {
+            //         headers: {
+            //             "Content-Type": "multipart/form-data",
+            //         },
+            //     }
+            // );
 
-            console.log('profile pic: ', proPic);
+            //console.log('profile pic: ', proPic);
             
             await useAuthStore.getState().signup({
                 full_name: name,
                 email: email,
                 password: password,
                 role: "client",
-                profile_picture: proPic.data.url
+                //profile_picture: proPic.data.url
             });
 
             await useAuthStore.getState().login(email, password);
@@ -157,7 +157,7 @@ export default function SignUp(){
                     </View>
                 </View>
                 <TouchableOpacity style={styles.btn} onPress={() => signup()}>
-                    {loading ? <ActivityIndicator size={"large"} /> :<Text style={styles.btnText}>SIGN UP</Text>}
+                    {loading ? <ActivityIndicator size={"large"} color='white' /> :<Text style={styles.btnText}>SIGN UP</Text>}
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.regs} onPress={() => navigation.navigate('Login')}>
                     <Text style={styles.regsText}>Already have an account? <Text style={{fontWeight: 'bold', color: '#184d85'}}>Log In</Text></Text>

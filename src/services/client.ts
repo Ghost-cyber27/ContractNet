@@ -3,7 +3,7 @@ import axios from "axios";
 import { useAuthStore } from "./AuthContext";
 
 export const api = axios.create({
-  baseURL: "http://192.168.252.82:8000", // change to your FastAPI base URL
+  baseURL: "http://192.168.174.82:8000", // change to your FastAPI base URL
 });
 
 api.interceptors.response.use(

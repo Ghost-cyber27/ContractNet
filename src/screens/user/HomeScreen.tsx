@@ -127,7 +127,7 @@ export default function MyJobs(){
     useFocusEffect(
         useCallback(() => {
             fetchJobs();  // refresh every time screen is focused
-            fetchNotifications();
+            //fetchNotifications();
         }, [])
     );
 
@@ -413,7 +413,6 @@ const styles = StyleSheet.create({
         width: wp('30%'),
         height: hp('10%'),
         resizeMode: 'contain', 
-        right: wp('5%')
     },
     jobText: {
         fontSize: 16
