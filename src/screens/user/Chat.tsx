@@ -12,33 +12,92 @@ import { AllChats } from "../../services/message";
 import { AntDesign } from "@expo/vector-icons";
 import { UserStackParamList } from "../../types/types";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
+import { useAuthStore } from "../../services/AuthContext";
+import { users } from "../../utils/functions";
+import { api } from "../../services/client";
+import axios from "axios";
 
 type UserScreenNavigationProp = NavigationProp<UserStackParamList, 'UserTabs'>;
 
 
-type Chats = {
-    id: number;
-    sender_id: number;
-    receiver_id: number;
-    job_id: number;
-    content: string;
-    is_read: boolean;
-    sent_at: string;
-};
+// type Chats = {
+//     id: number;
+//     sender_id: number;
+//     receiver_id: number;
+//     job_id: number;
+//     content: string;
+//     is_read: boolean;
+//     sent_at: string;
+// };
+
+interface Chat {
+  other_user_id: number
+  content: string
+  is_read: boolean
+  sent_at: string
+}
 
 export default function Chat(){
-    const [message, setMessage] = useState<Chats[]>([]);
+    const [message, setMessage] = useState<Chat[]>([]);
     const navigation = useNavigation<UserScreenNavigationProp>();
+    const token = useAuthStore((s) => s.token);
+    const myId = useAuthStore((s) => s.user.id);
     //add sender name
     useEffect(() => {
         const loadMessages = async() => {
-            const msg = await AllChats('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJleHAiOjE3NjQ4NDIzNDcsInR5cGUiOiJhY2Nlc3MifQ.sXoEjGnyoE5bT8fT4dTlP83NG4ueeV0EVHCe4qDcTs8');
-            setMessage(msg);
-            console.log('Msg: ' ,msg)
+            try {
+                const res = await api.get('/messages/chats',
+                    {
+                        headers: {
+                            "Authorization": `Bearer ${token}`,
+                        }
+                    }
+                );
+
+                if(!res)return;
+
+                console.log('Chats: ', res.data);
+                setMessage(res.data);
+
+            } catch (error) {
+                console.error(error);
+            }
         };
 
         loadMessages();
     }, []);
+
+    const markRead = async() => {
+        try {
+            const res = await api.put(`/messages/mark-read/${myId}`,
+                {
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+
+            if(!res) return;
+
+            console.log(res.data);
+            
+        } catch (err) {
+            console.error(err);
+            if (axios.isAxiosError(err) && err.response) {
+                console.error('API Error:', err.response.data); // <-- This is the key
+                console.error('Status Code:', err.response.status);
+            } else {
+                console.error('An unknown error occurred:', err);
+            }
+        }
+        
+    }
+
+    const nextScreen = (id: number) => {
+        //markRead();
+        navigation.navigate('chatDetails',{receiver_id: id});
+    };
 
     return(
         <View style={styles.container}>
@@ -47,21 +106,18 @@ export default function Chat(){
                 <FlatList
                     data={message}
                     renderItem={({ item }) => (
-                        <TouchableOpacity style={styles.chatView} onPress={() => navigation.navigate('chatDetails',{
-                            id: 1,
-                            sender_id: 2
-                        })}>
+                        <TouchableOpacity style={styles.chatView} onPress={() => nextScreen(item.other_user_id)}>
                             <View style={styles.img}>
                                 <AntDesign name="message" size={30} color='black' />
                             </View>
                             <View>
-                                <Text style={item.is_read ? styles.name : styles.unreadname}>{item.sender_id}</Text>
+                                <Text style={item.is_read ? styles.name : styles.unreadname}>User: {item.other_user_id}</Text>
                                 <Text style={item.is_read ? styles.msg : styles.unreadmsg} numberOfLines={1}>{item.content}</Text>
                             </View>
                             <Text style={item.is_read ? styles.time : styles.unreadtime}>{item.sent_at.split("T")[1].slice(0, 5)}</Text>
                         </TouchableOpacity>
                     )}
-                    keyExtractor={(item) => item.id.toString()}
+                    //keyExtractor={(item) => item.id.toString()}
                 />
                 )
                 : (

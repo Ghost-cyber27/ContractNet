@@ -14,10 +14,11 @@ type BackendMessage = {
   sender_id: number;
   // other fields...
 };
+//API Error: {"detail": [{"input": "chats", "loc": [Array], "msg": "Input should be a valid integer, unable to parse string as an integer", "type": "int_parsing"}]}
 
 // getConversation returns raw backend rows (array)
-export const getConversation = async (receiverId: number, jobId: number, token: string): Promise<BackendMessage[]> => {
-  const res = await api.get(`/messages/${receiverId}/${jobId}`, {
+export const getConversation = async (receiverId: number, token: string) => {
+  const res = await api.get(`/messages/chats/message/${receiverId}`, {
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",

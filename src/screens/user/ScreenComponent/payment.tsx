@@ -16,9 +16,8 @@ type DetailsScreenNavigationProp = RouteProp<UserStackParamList, 'Payment'>;
 
 export function Payment(){
     const navigation = useNavigation<GoBackScreenNavigationProp>();
-    const user = useAuthStore((s) => s.user.id);
     const route = useRoute<DetailsScreenNavigationProp>();
-    const {job_id} = route.params;
+    const {job_id, receiver_id} = route.params;
     return(
         <View
             style={{
@@ -58,8 +57,7 @@ export function Payment(){
                 </View>
                 <TouchableOpacity style={styles.btn} onPress={() => navigation.navigate('chatDetails',
                     {
-                        id: job_id,
-                        receiver_id: user
+                        receiver_id: receiver_id
                     }
                     )}>
                     <Text style={styles.btnText}>Pay</Text>

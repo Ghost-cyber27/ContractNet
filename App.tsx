@@ -11,6 +11,7 @@ import { api } from './src/services/client';
 // Notifications.setBadgeCountAsync(5); shows “5” on the app icon
 
 // Notifications.setBadgeCountAsync(0);
+//`npm i baseline-browser-mapping@latest -D`
 
 export default function App() {
   

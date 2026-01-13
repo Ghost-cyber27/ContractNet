@@ -2,7 +2,7 @@ export const connectChatSocket = (
   token: string,
   onMessage: (data: any) => void
 ) => {
-  const ws = new WebSocket(`ws://192.168.174.82:8000/ws/?token=${token}`);
+  const ws = new WebSocket(`ws://192.168.210.82:8000/ws/?token=${token}`);
 
   ws.onopen = () => {
     console.log("✅ Connected to WebSocket");

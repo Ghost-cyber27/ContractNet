@@ -291,7 +291,7 @@ export function JobDetails(){
                             <Text style={{
                                 fontSize: 16,
                                 fontWeight: '300'
-                            }}>⭐{freeUser?.rating}</Text>
+                            }}>⭐{freeUser?.id}</Text>
                         </View>
                     </View>
                     {/*Body*/}
@@ -324,7 +324,7 @@ export function JobDetails(){
                             }}>Status:</Text> Pending</Text>
                         </View>
                     </View>
-                    {stats == 'pending' && (
+                    {freeUser?.id && stats == 'pending' && (
                         <View style={{
                             flexDirection: 'row',
                             gap: wp('20%'),
@@ -334,7 +334,8 @@ export function JobDetails(){
                         }}>
                             <TouchableOpacity style={styles.Abtn} onPress={() => navigation.navigate('Payment',
                                 {
-                                    job_id: id
+                                    job_id: id,
+                                    receiver_id: freeUser?.id,
                                 }
                                 )}>
                                 <Text style={styles.bText}>Accept</Text>

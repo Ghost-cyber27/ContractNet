@@ -18,16 +18,18 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, RouteProp, useRoute, NavigationProp, useFocusEffect } from '@react-navigation/native';
 import { UserStackParamList } from "../../../types/types";
 import { useAuthStore } from "../../../services/AuthContext";
+import axios from "axios";
 
 type ChatScreenNavigationProp = RouteProp<UserStackParamList, 'chatDetails'>;
 
 interface Message {
-  id: number;
-  sender_id: number;
-  receiver_id?: number;
-  content: string;
-  created_at: string;
+  id: number
+  sender_id: number
+  receiver_id?: number
+  content: string
+  sent_at: string
 }
+
 
 
 export function ChatDetails() {
@@ -35,7 +37,8 @@ export function ChatDetails() {
   const [messages, setMessages] = useState<Message[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const route = useRoute<ChatScreenNavigationProp>();
-  const { id, receiver_id } = route.params;
+  const navigation = useNavigation();
+  const { receiver_id } = route.params;
   const key = useAuthStore((s) => s.token);
   const myId = useAuthStore((s) => s.user.id);
   const token = `${key}`;
@@ -45,7 +48,7 @@ export function ChatDetails() {
 
   const loadMessages = async () => {
     try {
-      const res = await getConversation(receiver_id, id, token);
+      const res = await getConversation(receiver_id, token);
 
       if (!res) return;
 
@@ -54,12 +57,18 @@ export function ChatDetails() {
         sender_id: msg.sender_id,
         receiver_id: msg.receiver_id,
         content: msg.content,
-        created_at: msg.created_at,
+        sent_at: msg.sent_at,
       }));
 
       setMessages(mapped);
     } catch (err) {
       console.warn("Failed to load messages:", err);
+      if (axios.isAxiosError(err) && err.response) {
+          console.error('API Error:', err.response.data); // <-- This is the key
+          console.error('Status Code:', err.response.status);
+      } else {
+          console.error('An unknown error occurred:', err);
+      }
     }
   };
 
@@ -71,7 +80,7 @@ export function ChatDetails() {
         "keyboardDidShow",
         (e) => {
             Animated.timing(keyboardOffset, {
-                toValue: e.endCoordinates.height,
+                toValue: 10,
                 duration: 250,
                 useNativeDriver: false,
             }).start();
@@ -98,7 +107,7 @@ export function ChatDetails() {
   useEffect(() => {
     const ws = connectChatSocket(token, (rawMsg: any) => {
       try {
-        if (rawMsg.job_id === id) {
+        if (rawMsg.receiver_id === receiver_id) {
           setMessages(prev => [
               ...prev,
               {
@@ -106,7 +115,7 @@ export function ChatDetails() {
                 sender_id: rawMsg.sender_id,
                 receiver_id: rawMsg.receiver_id,
                 content: rawMsg.content,
-                created_at: rawMsg.created_at,
+                sent_at: rawMsg.sent_at,
               }
             ]);
         }
@@ -124,41 +133,46 @@ export function ChatDetails() {
     };
   }, [token]);
 
-  const onSend = useCallback(async (newMessages: Message[] = []) => {
-    if (!newMessages.length) return;
+  const onSend = async() => {
+    if (!msg.trim()) return;
 
-    const clientMsg = newMessages[0];
+    console.log(msg);
 
     try {
       const res = await sendMessage(
         {
           receiver_id,
-          job_id: id,
-          content: clientMsg.content
+          job_id: 1,
+          content: msg
         },
         token
       );
 
-      setMessages(prev => [...prev, {
-        id: res.id,
-        sender_id: myId,
-        receiver_id: receiver_id,
-        content: res.content,
-        created_at: res.created_at,
-      }]);
+      const newMessage: Message = {
+          id: res.id,
+          sender_id: res.sender_id,
+          receiver_id: res.receiver_id,
+          content: res.content,
+          sent_at: res.created_at,
+      };
+
+      setMessages(prev => [...prev, newMessage]);
 
       setMsg("");
-
     } catch (error) {
-      console.warn("Failed to send message:", error);
+      console.error(error);
     }
-  }, [token]);
+  }  
+
+  const dateTime = (date: string) => {
+    return console.log('date: ', date);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       {/*Header*/}
             <View style={styles.header}>
-              <TouchableOpacity style={{top: hp('0.5%')}} onPress={() => console.log(token)}>
+              <TouchableOpacity style={{top: hp('0.5%')}} onPress={() => navigation.goBack()}>
                 <AntDesign name="arrow-left" size={24} color='black' />
               </TouchableOpacity>
               <Text style={styles.heading}>Chat with AI</Text>
@@ -183,8 +197,8 @@ export function ChatDetails() {
                                 : styles.theirMessage
                             ]}
                             >
-                                <Text style={styles.msgText}>{item.content}</Text>
-                                <Text style={{color: 'white', fontSize: 12}}>{new Date(item.created_at).toLocaleTimeString()}</Text>
+                                <Text style={styles.msgText} onPress={() => console.log('date', item.sent_at)}>{item.content}</Text>
+                                <Text style={{color: 'white', fontSize: 12}}>{item.sent_at}</Text>
                             </View>
                             
                         </View>
@@ -195,7 +209,7 @@ export function ChatDetails() {
             <Animated.View
                 style={{
                     position: "absolute",
-                    bottom: 20,
+                    bottom: 0,
                     left: 0,
                     right: 0,
                     transform: [{translateY: Animated.multiply(keyboardOffset, -1)}],
@@ -208,11 +222,11 @@ export function ChatDetails() {
                             multiline
                             placeholder="Type a message"
                             onChangeText={(text) => setMsg(text)}
-                            value={msg} 
+                            //value={msg} 
                             style={styles.textInput}
                             onSubmitEditing={Keyboard.dismiss}
                         />
-                    <TouchableOpacity style={styles.btn} //onPress={() => onSend()}
+                    <TouchableOpacity style={styles.btn} onPress={() => onSend()}
                     >
                       <AntDesign name="send" color="white" size={24} />
                     </TouchableOpacity>
@@ -316,3 +330,36 @@ const styles = StyleSheet.create({
       fontWeight: '500'
   },
 });
+
+/*
+const onSend = useCallback(async () => {
+    //if (msg.trim()) return;
+    console.log(msg);
+
+    try {
+      const res = await sendMessage(
+        {
+          receiver_id,
+          job_id: id,
+          content: msg
+        },
+        token
+      );
+
+      const newMessage: Message = {
+            id: res.id,
+            sender_id: res.sender_id,
+            receiver_id: res.receiver_id,
+            content: res.content,
+            created_at: res.created_at,
+        };
+
+      setMessages(prev => [...prev, newMessage]);
+
+      setMsg("");
+
+    } catch (error) {
+      console.warn("Failed to send message:", error);
+    }
+  }, [token]);
+*/
